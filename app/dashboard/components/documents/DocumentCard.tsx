@@ -1,8 +1,9 @@
 // app/dashboard/components/documents/DocumentCard.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { DocumentWithCategory } from '@/app/types/document'
 
 interface SerializedDocument extends Omit<DocumentWithCategory, 'createdAt' | 'updatedAt'> {
@@ -14,50 +15,64 @@ interface DocumentCardProps {
   document: SerializedDocument;
   onDelete: () => void;
   isDeleting: boolean;
-  showImagePreview?: boolean;
 }
 
 export default function DocumentCard({
   document,
   onDelete,
-  isDeleting,
-  showImagePreview = true
+  isDeleting
 }: DocumentCardProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const imageRef = useRef<HTMLImageElement>(null)
+  
+  // Reset loading state when document id changes
+  useEffect(() => {
+    setIsImageLoaded(false)
+    setImageError(false)
+  }, [document.id, document.coverImage])
+  
+  // Force image reloading on DOM render
+  useEffect(() => {
+    const img = imageRef.current
+    if (img && img.complete) {
+      setIsImageLoaded(true)
+    }
+  }, [])
   
   if (!document) {
-    return null;
+    return null
   }
 
-  // จัดการกับ path ของรูปภาพ
-  let imageUrl = null
-  if (document?.coverImage) {
-    let path = document.coverImage
-    if (!path.startsWith('/')) {
-      path = `/${path}`
-    }
-    imageUrl = path
+  // Create a loading-safe image URL with document ID to bust cache
+  const getImageUrl = () => {
+    if (!document.coverImage) return null
+    
+    // Clean up the path and add a query parameter for cache busting
+    const cleanPath = document.coverImage.startsWith('/') 
+      ? document.coverImage 
+      : `/${document.coverImage}`
+      
+    return `${cleanPath}?v=${document.id}`
   }
+  
+  const imageUrl = getImageUrl()
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="relative h-32">
         {!imageUrl ? (
-          // แสดงข้อความเมื่อไม่มีรูปภาพ
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
             <span className="text-gray-400">ไม่มีรูปปก</span>
           </div>
         ) : imageError ? (
-          // แสดงข้อความเมื่อโหลดรูปภาพไม่สำเร็จ
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
             <span className="text-gray-400">ไม่สามารถโหลดรูปภาพได้</span>
           </div>
         ) : (
-          // แสดงรูปภาพพร้อม loading indicator
-          <div className="w-full h-full relative">
-            {!isImageLoaded && showImagePreview && (
-              <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-10">
+          <div className="w-full h-full bg-gray-100">
+            {!isImageLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center z-10">
                 <div className="animate-pulse flex space-x-1">
                   <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
                   <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
@@ -65,13 +80,22 @@ export default function DocumentCard({
                 </div>
               </div>
             )}
+            <div 
+              className="w-full h-full"
+              style={{
+                backgroundImage: `url('${imageUrl}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                display: isImageLoaded ? 'block' : 'none'
+              }}
+            ></div>
             <img
+              ref={imageRef}
               src={imageUrl}
               alt={document.title || "เอกสาร"}
-              className="object-cover w-full h-full"
+              className="hidden"
               onLoad={() => setIsImageLoaded(true)}
               onError={() => setImageError(true)}
-              style={{ visibility: showImagePreview && !isImageLoaded ? "hidden" : "visible" }}
             />
           </div>
         )}

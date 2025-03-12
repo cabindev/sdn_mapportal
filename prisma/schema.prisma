@@ -60,6 +60,7 @@ model Document {
   province      String
   amphoe        String
   district      String
+  zone          String?     // เพิ่มฟิลด์ zone
   latitude      Float
   longitude     Float
   viewCount     Int      @default(0)
@@ -69,4 +70,5 @@ model Document {
   updatedAt     DateTime    @updatedAt
 
   @@index([categoryId])
+  @@index([zone])          // เพิ่ม index สำหรับค้นหาตาม zone
 }

@@ -1,3 +1,4 @@
+//api/auth/signup/route.ts
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { NextRequest, NextResponse } from 'next/server';

@@ -9,6 +9,7 @@ export interface LocationData {
   amphoe: string;
   district: string;
   geocode: number;
+  zone?: string;  
 }
 
 // สำหรับข้อมูลภูมิภาค
@@ -25,6 +26,7 @@ export interface RegionData {
 // สำหรับเอกสารที่มีข้อมูลหมวดหมู่
 export interface DocumentWithCategory extends Document {
   category: CategoryDoc;
+  isLatest?: boolean;
 }
 
 // สำหรับการส่งข้อมูลฟอร์ม
@@ -61,3 +63,4 @@ export type DocumentError = {
 
 // สถานะการโหลด
 export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+

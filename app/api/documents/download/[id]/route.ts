@@ -1,52 +1,42 @@
 // app/api/documents/download/[id]/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/app/lib/db'
-import fs from 'fs'
-import path from 'path'
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/app/lib/db';
+import { revalidatePath } from 'next/cache';
 
-export async function GET(request: NextRequest) {
+type RouteParams = {
+  params: Promise<{ id: string }>
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: RouteParams
+) {
   try {
-    // ดึง id จาก URL
-    const id = Number(request.nextUrl.pathname.split('/').pop())
+    // แก้ไขเป็น await params
+    const { id } = await params;
+    const documentId = parseInt(id);
     
-    // หาข้อมูลเอกสาร
-    const document = await prisma.document.findUnique({
-      where: { id }
-    })
-
-    if (!document) {
-      return NextResponse.json(
-        { error: 'ไม่พบเอกสาร' },
-        { status: 404 }
-      )
+    if (isNaN(documentId)) {
+      return NextResponse.json({ error: 'Invalid document ID' }, { status: 400 });
     }
-
-    // อ่านไฟล์
-    const filePath = path.join(process.cwd(), 'public', document.filePath)
-    const fileBuffer = fs.readFileSync(filePath)
-
-    // อัพเดทจำนวนดาวน์โหลด
-    await prisma.document.update({
-      where: { id },
+    
+    // อัพเดตจำนวนการดาวน์โหลด
+    const document = await prisma.document.update({
+      where: { id: documentId },
       data: {
         downloadCount: {
           increment: 1
         }
       }
-    })
-
-    // ส่งไฟล์กลับ
-    return new NextResponse(fileBuffer, {
-      headers: {
-        'Content-Type': 'application/pdf', // หรือประเภทไฟล์ตามที่เก็บ
-        'Content-Disposition': `attachment; filename="${document.title}.pdf"`
-      }
-    })
+    });
+    
+    // ล้างแคช
+    revalidatePath('/dashboard/documents');
+    revalidatePath('/dashboard/map');
+    
+    return NextResponse.json({ success: true, downloadCount: document.downloadCount });
   } catch (error) {
-    console.error('Download error:', error)
-    return NextResponse.json(
-      { error: 'เกิดข้อผิดพลาดในการดาวน์โหลด' },
-      { status: 500 }
-    )
+    console.error('Error incrementing download count:', error);
+    return NextResponse.json({ error: 'Failed to update download count' }, { status: 500 });
   }
 }

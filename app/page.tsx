@@ -2,10 +2,10 @@
 import { getCategories } from '@/app/lib/actions/categories/get'
 import { getDocuments } from '@/app/lib/actions/documents/get'
 import MapClientWrapper from './components/MapClientWrapper'
+import RecentDocumentsSidebar from './dashboard/map/components/RecentDocumentsSidebar'
 import Link from 'next/link'
-import Image from 'next/image'
 import { getCategoryColor } from '@/app/utils/colorGenerator'
-import { FiMap, FiFileText, FiFilter, FiInfo } from 'react-icons/fi'
+import { FiMap, FiFileText, FiFilter, FiInfo, FiChevronRight } from 'react-icons/fi'
 
 export default async function HomePage() {
   const [categories, documents] = await Promise.all([
@@ -13,7 +13,7 @@ export default async function HomePage() {
     getDocuments()
   ])
 
-  // จัดกลุ่มเอกสารตามจังหวัด
+  // Group documents by province
   const provinceGroups = documents.reduce((acc, doc) => {
     if (!acc[doc.province]) {
       acc[doc.province] = { count: 0, documents: [] };
@@ -23,14 +23,27 @@ export default async function HomePage() {
     return acc;
   }, {} as Record<string, { count: number, documents: any[] }>);
 
-  // เรียงลำดับจังหวัดตามจำนวนเอกสาร
+  // Sort provinces by document count
   const topProvinces = Object.entries(provinceGroups)
     .sort(([, a], [, b]) => b.count - a.count)
     .slice(0, 5);
 
   return (
-    <main className="min-h-screen pt-16 bg-gradient-to-br from-white to-gray-50"> {/* pt-16 เพิ่มพื้นที่ด้านบนสำหรับ Navbar */}
-      {/* Hero Section */}
+    <main className="min-h-screen pt-2 bg-gradient-to-br from-white to-gray-50">
+      {/* Map Section - Moved to top */}
+      <div className="container mx-auto px-4 mb-16 mt-0">
+  <div className="h-[750px] bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 relative">
+    <MapClientWrapper 
+      categories={categories} 
+      documents={documents}
+      simplified={true} 
+      fullscreen={true}
+      showRecentDocuments={true}
+    />
+  </div>
+</div>
+
+      {/* Hero Section - Moved below map */}
       <div className="relative bg-gradient-to-r from-orange-600 to-orange-400 text-white pt-16 pb-32 px-4 overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-10">
           <div className="w-full h-full bg-[url('/images/map-pattern.png')] bg-repeat bg-center"></div>
@@ -61,7 +74,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* สถิติสรุป */}
+      {/* Stats Summary */}
       <div className="container mx-auto px-4 -mt-16 mb-12 relative z-20">
         <div className="bg-white rounded-xl shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-gray-800">
           <div className="text-center p-4 border-b md:border-b-0 md:border-r border-gray-100">
@@ -78,73 +91,71 @@ export default async function HomePage() {
           </div>
         </div>
       </div>
-
-      {/* Map Section */}
+      
+      {/* Document Types and Popular Areas */}
       <div className="container mx-auto px-4 mb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 h-[550px] bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-            <MapClientWrapper categories={categories} simplified={true} />
-          </div>
-          
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span className="p-1.5 bg-orange-100 text-orange-600 rounded-lg">
-                  <FiFilter className="w-5 h-5" />
-                </span>
-                ประเภทเอกสาร
-              </h2>
-              
-              <div className="space-y-4">
-                {categories.map(category => {
-                  const color = getCategoryColor(category.id).primary;
-                  const count = documents.filter(d => d.categoryId === category.id).length;
-                  return (
-                    <div key={category.id} className="flex items-center justify-between group">
-                      <div className="flex items-center">
-                        <div 
-                          className="w-4 h-4 rounded-full mr-2 group-hover:scale-125 transition-transform"
-                          style={{ backgroundColor: color }}
-                        ></div>
-                        <span className="text-gray-700">{category.name}</span>
-                      </div>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                        {count} รายการ
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Document Types */}
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="p-1.5 bg-orange-100 text-orange-600 rounded-lg">
+                <FiFilter className="w-5 h-5" />
+              </span>
+              ประเภทเอกสาร
+            </h2>
             
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span className="p-1.5 bg-orange-100 text-orange-600 rounded-lg">
-                  <FiMap className="w-5 h-5" />
-                </span>
-                พื้นที่ยอดนิยม
-              </h2>
-              <div className="space-y-4">
-                {topProvinces.map(([province, data], index) => (
-                  <div key={province} className="flex items-center justify-between">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {categories.map(category => {
+                const color = getCategoryColor(category.id).primary;
+                const count = documents.filter(d => d.categoryId === category.id).length;
+                return (
+                  <div key={category.id} className="flex items-center justify-between group p-2 hover:bg-gray-50 rounded-lg transition-colors">
                     <div className="flex items-center">
-                      <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-medium mr-2">
-                        {index + 1}
-                      </div>
-                      <span className="text-gray-700">{province}</span>
+                      <div 
+                        className="w-4 h-4 rounded-full mr-2 group-hover:scale-125 transition-transform"
+                        style={{ backgroundColor: color }}
+                      ></div>
+                      <span className="text-gray-700">{category.name}</span>
                     </div>
-                    <span className="px-2 py-1 bg-orange-50 text-orange-600 text-xs rounded-full">
-                      {data.count} เอกสาร
+                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                      {count} รายการ
                     </span>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
+    
+          </div>
+          
+          {/* Popular Areas */}
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="p-1.5 bg-orange-100 text-orange-600 rounded-lg">
+                <FiMap className="w-5 h-5" />
+              </span>
+              พื้นที่ยอดนิยม
+            </h2>
+            <div className="space-y-4">
+              {topProvinces.map(([province, data], index) => (
+                <div key={province} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-medium mr-2">
+                      {index + 1}
+                    </div>
+                    <span className="text-gray-700">{province}</span>
+                  </div>
+                  <span className="px-3 py-1.5 bg-orange-50 text-orange-600 text-xs rounded-full">
+                    {data.count} เอกสาร
+                  </span>
+                </div>
+              ))}
+            </div>
+      
           </div>
         </div>
       </div>
       
-      {/* คำแนะนำการใช้งาน */}
+      {/* Usage Guide */}
       <div className="bg-gray-50 py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">

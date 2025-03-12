@@ -64,7 +64,7 @@ export default function DocumentForm({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setInternalIsSubmitting(true)
-
+  
     try {
       const formData = new FormData(e.currentTarget)
       
@@ -75,7 +75,11 @@ export default function DocumentForm({
         formData.append('province', location.province)
         formData.append('amphoe', location.amphoe)
         formData.append('district', location.district)
-
+        // เพิ่มค่า zone
+        if (location.zone) {
+          formData.append('zone', location.zone)
+        }
+  
         if (onSubmit) {
           await onSubmit(formData)
         } else {
@@ -98,7 +102,6 @@ export default function DocumentForm({
       setInternalIsSubmitting(false)
     }
   }
-
   return (
     <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-lg border border-gray-100">
       <div className="flex justify-between items-center mb-6">
@@ -121,40 +124,46 @@ export default function DocumentForm({
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ข้อมูลตำแหน่ง */}
         {locationData && (
-          <div className="bg-orange-50 p-5 rounded-lg border border-orange-100">
-            <h3 className="font-medium mb-3 text-orange-800 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              ข้อมูลตำแหน่ง
-            </h3>
-            <div className="grid grid-cols-2 gap-4 mb-3">
-              <div className="bg-white p-2 rounded-md border border-orange-100">
-                <label className="text-sm text-gray-600 font-medium">Latitude</label>
-                <div className="text-sm font-medium text-gray-800">{locationData.lat.toFixed(6)}</div>
-              </div>
-              <div className="bg-white p-2 rounded-md border border-orange-100">
-                <label className="text-sm text-gray-600 font-medium">Longitude</label>
-                <div className="text-sm font-medium text-gray-800">{locationData.lng.toFixed(6)}</div>
-              </div>
-            </div>
-            <div className="bg-white p-3 rounded-md border border-orange-100 space-y-2">
-              <div className="flex">
-                <span className="text-sm font-medium text-gray-700 w-20">จังหวัด:</span> 
-                <span className="text-sm text-gray-800">{locationData.province}</span>
-              </div>
-              <div className="flex">
-                <span className="text-sm font-medium text-gray-700 w-20">อำเภอ:</span> 
-                <span className="text-sm text-gray-800">{locationData.amphoe}</span>
-              </div>
-              <div className="flex">
-                <span className="text-sm font-medium text-gray-700 w-20">ตำบล:</span> 
-                <span className="text-sm text-gray-800">{locationData.district}</span>
-              </div>
-            </div>
-          </div>
-        )}
+  <div className="bg-orange-50 p-5 rounded-lg border border-orange-100">
+    <h3 className="font-medium mb-3 text-orange-800 flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      ข้อมูลตำแหน่ง
+    </h3>
+    <div className="grid grid-cols-2 gap-4 mb-3">
+      <div className="bg-white p-2 rounded-md border border-orange-100">
+        <label className="text-sm text-gray-600 font-medium">Latitude</label>
+        <div className="text-sm font-medium text-gray-800">{locationData.lat.toFixed(6)}</div>
+      </div>
+      <div className="bg-white p-2 rounded-md border border-orange-100">
+        <label className="text-sm text-gray-600 font-medium">Longitude</label>
+        <div className="text-sm font-medium text-gray-800">{locationData.lng.toFixed(6)}</div>
+      </div>
+    </div>
+    <div className="bg-white p-3 rounded-md border border-orange-100 space-y-2">
+      <div className="flex">
+        <span className="text-sm font-medium text-gray-700 w-20">จังหวัด:</span> 
+        <span className="text-sm text-gray-800">{locationData.province}</span>
+      </div>
+      <div className="flex">
+        <span className="text-sm font-medium text-gray-700 w-20">อำเภอ:</span> 
+        <span className="text-sm text-gray-800">{locationData.amphoe}</span>
+      </div>
+      <div className="flex">
+        <span className="text-sm font-medium text-gray-700 w-20">ตำบล:</span> 
+        <span className="text-sm text-gray-800">{locationData.district}</span>
+      </div>
+      {locationData.zone && (
+        <div className="flex">
+          <span className="text-sm font-medium text-gray-700 w-20">ภูมิภาค:</span> 
+          <span className="text-sm text-gray-800 bg-orange-50 px-2 py-0.5 rounded">{locationData.zone}</span>
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
         {/* หมวดหมู่ */}
         <div className="space-y-2">

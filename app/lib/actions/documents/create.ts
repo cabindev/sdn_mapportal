@@ -19,6 +19,7 @@ export async function createDocument(formData: FormData) {
     const province = formData.get('province')?.toString()
     const latitude = formData.get('latitude')?.toString()
     const longitude = formData.get('longitude')?.toString()
+    const zone = formData.get('zone') as string || null
     const isPublished = formData.get('isPublished') === 'on' || formData.get('isPublished') === 'true'
 
     // 2. ตรวจสอบข้อมูลที่จำเป็น
@@ -72,6 +73,7 @@ export async function createDocument(formData: FormData) {
         longitude: longitude ? parseFloat(longitude) : 0,
         filePath,
         coverImage: coverImagePath,
+        zone, 
         isPublished
       }
     })
