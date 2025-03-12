@@ -73,7 +73,6 @@ export async function createDocument(formData: FormData) {
         longitude: longitude ? parseFloat(longitude) : 0,
         filePath,
         coverImage: coverImagePath,
-        zone, 
         isPublished
       }
     })

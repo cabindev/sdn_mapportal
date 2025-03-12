@@ -47,7 +47,6 @@ model CategoryDoc {
 
   @@index([name])
 }
-
 model Document {
   id            Int         @id @default(autoincrement())
   title         String
@@ -56,19 +55,16 @@ model Document {
   category      CategoryDoc @relation(fields: [categoryId], references: [id])
   filePath      String
   coverImage    String?
-  type          String?
   province      String
   amphoe        String
   district      String
-  zone          String?     // เพิ่มฟิลด์ zone
   latitude      Float
   longitude     Float
-  viewCount     Int      @default(0)
-  downloadCount Int     @default(0)   
-  isPublished   Boolean  @default(true) 
+  viewCount     Int         @default(0)
+  downloadCount Int         @default(0)   
+  isPublished   Boolean     @default(true) 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   @@index([categoryId])
-  @@index([zone])          // เพิ่ม index สำหรับค้นหาตาม zone
 }
