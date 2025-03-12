@@ -1,125 +1,115 @@
 // app/dashboard/map/components/LocationMarker.tsx
-import { useState, useEffect } from 'react';
-import { Marker, useMapEvents, Tooltip } from 'react-leaflet';
-import { provinceCoordinates } from '@/app/utils/provinceCoordinates';
-import L from 'leaflet';
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { useMap, CircleMarker, Popup } from 'react-leaflet'
+import { LocationData } from '@/app/types/document'
+import { toast } from 'react-hot-toast'
 
 interface LocationMarkerProps {
-  onSelectLocation: (location: { lat: number; lng: number; province?: string; amphoe?: string; district?: string }) => void;
+  onSelectLocation: (location: LocationData) => void;
 }
 
 export default function LocationMarker({ onSelectLocation }: LocationMarkerProps) {
-  const [position, setPosition] = useState<L.LatLng | null>(null);
-  const [provinceMarkers, setProvinceMarkers] = useState<any[]>([]);
-  const [showProvinceMarkers, setShowProvinceMarkers] = useState(false);
+  const [position, setPosition] = useState<[number, number] | null>(null)
+  const [address, setAddress] = useState<{province: string; district: string; subdistrict: string} | null>(null)
+  const map = useMap()
+  const clickHandlerRef = useRef<((e: any) => void) | null>(null)
 
-  // เตรียม Icon สำหรับจังหวัด
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const provinceIcon = L.divIcon({
-        html: `
-          <div style="
-            width: 8px;
-            height: 8px;
-            background-color: rgba(255, 149, 0, 0.7);
-            border-radius: 50%;
-            border: 1px solid white;
-          "></div>
-        `,
-        className: 'custom-marker',
-        iconSize: [8, 8],
-        iconAnchor: [4, 4],
-      });
-
-      const markers = provinceCoordinates.map(province => ({
-        position: [province.latitude, province.longitude],
-        name: province.province,
-        icon: provinceIcon
-      }));
-      
-      setProvinceMarkers(markers);
+    // ลบ event handler เก่าก่อนเสมอ
+    if (clickHandlerRef.current) {
+      map.off('click', clickHandlerRef.current)
     }
-  }, []);
 
-  const map = useMapEvents({
-    click(e) {
-      setPosition(e.latlng);
-      onSelectLocation({
-        lat: e.latlng.lat,
-        lng: e.latlng.lng,
-        province: "รอข้อมูล",
-        amphoe: "รอข้อมูล",
-        district: "รอข้อมูล"
-      });
-    },
-    zoomend() {
-      const currentZoom = map.getZoom();
-      setShowProvinceMarkers(currentZoom >= 7); // แสดงชื่อจังหวัดเมื่อซูมเข้าใกล้
-    },
-  });
+    // สร้าง handler ใหม่
+    const handleMapClick = async (e: any) => {
+      const { lat, lng } = e.latlng
 
-  // สร้าง Icon สำหรับตำแหน่งที่เลือก
-  const selectedLocationIcon = L.divIcon({
-    html: `
-      <div style="
-        width: 20px;
-        height: 20px;
-        background-color: #FF3B30;
-        border-radius: 50%;
-        border: 2px solid white;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      "></div>
-      <div style="
-        position: absolute;
-        top: -4px;
-        left: -4px;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: 2px solid rgba(255,59,48,0.5);
-        animation: ping 1.5s ease-in-out infinite;
-      "></div>
-    `,
-    className: 'custom-marker',
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-  });
+      // ตรวจสอบพื้นที่ประเทศไทย
+      if (lat < 5.613038 || lat > 20.465143 || lng < 97.343396 || lng > 105.639389) {
+        toast.error('กรุณาเลือกตำแหน่งในประเทศไทย')
+        return
+      }
 
-  return (
-    <>
-      {/* แสดงตำแหน่งที่เลือก */}
-      {position && (
-        <Marker position={position} icon={selectedLocationIcon}>
-          <Tooltip permanent>
-            <div className="text-xs font-medium">ตำแหน่งที่เลือก</div>
-          </Tooltip>
-        </Marker>
-      )}
+      setPosition([lat, lng])
+      setAddress(null) // รีเซ็ตข้อมูลที่อยู่เมื่อเลือกตำแหน่งใหม่
 
-      {/* แสดงตำแหน่งจังหวัด */}
-      {showProvinceMarkers && provinceMarkers.map((marker, idx) => (
-        <Marker 
-          key={idx} 
-          position={marker.position} 
-          icon={marker.icon}
-          eventHandlers={{
-            click: () => {
-              onSelectLocation({
-                lat: marker.position[0],
-                lng: marker.position[1],
-                province: marker.name,
-                amphoe: "",
-                district: ""
-              });
-              setPosition(L.latLng(marker.position[0], marker.position[1]));
-            }
-          }}
-        >
-          <Tooltip direction="top" offset={[0, -5]}>
-            <div className="text-xs font-medium">{marker.name}</div>
-          </Tooltip>
-        </Marker>
-      ))}
-    </>
-  );
+      try {
+        toast.loading('กำลังดึงข้อมูลที่อยู่...', { id: 'location-fetch' })
+        
+        // เปลี่ยนมาใช้ API route แทนการเรียก GISTDA API โดยตรง
+        const response = await fetch(`/api/gistda/reverse-geocode?lat=${lat}&lng=${lng}`)
+        
+        if (!response.ok) {
+          throw new Error('ไม่สามารถดึงข้อมูลที่อยู่ได้')
+        }
+        
+        const addressData = await response.json()
+        
+        toast.dismiss('location-fetch')
+        toast.success('ดึงข้อมูลสำเร็จ')
+        
+        setAddress({
+          province: addressData.province,
+          district: addressData.district,
+          subdistrict: addressData.subdistrict
+        })
+        
+        onSelectLocation({
+          lat,
+          lng,
+          province: addressData.province,
+          amphoe: addressData.district,
+          district: addressData.subdistrict,
+          geocode: addressData.geocode || 0
+        })
+      } catch (error) {
+        console.error('Location error:', error)
+        toast.dismiss('location-fetch')
+        toast.error('ไม่สามารถดึงข้อมูลที่อยู่ได้ กรุณาลองใหม่')
+      }
+    }
+
+    // บันทึก handler ไว้ใน ref เพื่อใช้ในการลบออก
+    clickHandlerRef.current = handleMapClick
+    
+    // เพิ่ม event listener
+    map.on('click', handleMapClick)
+
+    // ทำความสะอาดเมื่อ unmount
+    return () => {
+      if (clickHandlerRef.current) {
+        map.off('click', clickHandlerRef.current)
+      }
+    }
+  }, [map, onSelectLocation])
+
+  return position ? (
+    <CircleMarker 
+      center={position}
+      pathOptions={{ 
+        fillColor: '#f97316',
+        fillOpacity: 0.7,
+        color: 'white',
+        weight: 2
+      }}
+      radius={8}
+    >
+      <Popup>
+        <div className="text-center">
+          {address ? (
+            <>
+              <p className="font-medium">{address.subdistrict}, {address.district}, {address.province}</p>
+            </>
+          ) : (
+            <p>กำลังโหลดข้อมูล...</p>
+          )}
+          <p className="text-sm text-gray-500">
+            พิกัด: {position[0].toFixed(6)}, {position[1].toFixed(6)}
+          </p>
+        </div>
+      </Popup>
+    </CircleMarker>
+  ) : null
 }

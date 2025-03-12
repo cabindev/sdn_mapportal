@@ -384,13 +384,16 @@ export default function MapMarker({ document: docData }: MapMarkerProps) {
           </div>
         ` : ''}
         
-        <div class="popup-location">
-          <div class="popup-location-title">ตำแหน่งที่ตั้ง</div>
-          <div class="popup-location-text">
-            ${docData.district}, ${docData.amphoe}, ${docData.province}
-          </div>
-        </div>
-        
+<div class="popup-location">
+  <div class="popup-location-title">ตำแหน่งที่ตั้ง</div>
+  <div class="popup-location-text">
+    ${docData.district}, ${docData.amphoe}, ${docData.province}
+  </div>
+  <div class="popup-location-coordinates text-xs text-gray-500 mt-1">
+    พิกัด: ${docData.latitude.toFixed(6)}, ${docData.longitude.toFixed(6)}
+  </div>
+</div>
+
         <div class="popup-stats">
           <div class="popup-stat">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
