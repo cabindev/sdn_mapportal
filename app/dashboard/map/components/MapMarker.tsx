@@ -386,10 +386,9 @@ export default function MapMarker({ document: docData }: MapMarkerProps) {
         
         <div class="popup-location">
           <div class="popup-location-title">ตำแหน่งที่ตั้ง</div>
-        <div className="popup-location-text">
-          ${docData.district}, ${docData.amphoe}, ${docData.province}
-          ${docData['zone'] !== undefined ? ` (${docData['zone']})` : ''}
-        </div>
+          <div class="popup-location text-gray-600 text-sm">
+            ${docData.district}, ${docData.amphoe}, ${docData.province}
+          </div>
         </div>
         
         <div class="popup-stats">
