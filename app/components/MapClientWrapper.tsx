@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { CategoryDoc } from '@prisma/client'
 import { DocumentWithCategory } from '@/app/types/document'
 import MapSkeleton from './ui/MapSkeleton'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 
 // Import component dynamically
 const DynamicMapClient = dynamic(
@@ -22,18 +22,20 @@ interface MapClientWrapperProps {
   selectedCategories?: number[];
   setSelectedCategories?: (ids: number[]) => void;
   simplified?: boolean;
-  fullscreen?: boolean; // Add fullscreen prop
-  showRecentDocuments?: boolean; // เพิ่ม props สำหรับควบคุมการแสดง sidebar
+  fullscreen?: boolean;
+  showRecentDocuments?: boolean;
+  showUnpublished?: boolean; // เพิ่ม prop สำหรับควบคุมการแสดงเอกสารที่ไม่เผยแพร่
 }
 
 export default function MapClientWrapper({ 
   categories, 
-  documents, 
+  documents = [], 
   selectedCategories: externalSelectedCategories, 
   setSelectedCategories: externalSetSelectedCategories, 
   simplified = false,
-  fullscreen = false, // Default to false
-  showRecentDocuments = true // Default to true
+  fullscreen = false,
+  showRecentDocuments = true,
+  showUnpublished = false // default ไม่แสดงเอกสารที่ไม่เผยแพร่
 }: MapClientWrapperProps) {
   // สร้าง state ภายในสำหรับกรณีที่ไม่มี props จากภายนอก
   const [internalSelectedCategories, setInternalSelectedCategories] = useState<number[]>(
@@ -47,15 +49,33 @@ export default function MapClientWrapper({
     
   const setSelectedCategories = externalSetSelectedCategories || setInternalSelectedCategories;
 
+  // กรองเอกสารที่ไม่เผยแพร่ออกถ้า showUnpublished เป็น false
+  const filteredDocuments = useMemo(() => {
+    if (showUnpublished) {
+      return documents;
+    }
+    return documents.filter(doc => doc.isPublished);
+  }, [documents, showUnpublished]);
+
+  // เตรียมข้อมูลเอกสารล่าสุดสำหรับ sidebar (ใช้เฉพาะเอกสารที่ผ่านการกรองแล้ว)
+  const recentDocuments = useMemo(() => {
+    if (!showRecentDocuments) return [];
+    
+    return [...filteredDocuments]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 10);
+  }, [filteredDocuments, showRecentDocuments]);
+
   return (
     <DynamicMapClient 
       categories={categories}
-      documents={documents}
+      documents={filteredDocuments}
       selectedCategories={selectedCategories}
       setSelectedCategories={setSelectedCategories}
       simplified={simplified}
-      fullscreen={fullscreen} // Pass fullscreen to DynamicMapView
-      showRecentDocuments={showRecentDocuments} // ส่งพารามิเตอร์เพื่อควบคุมการแสดง sidebar
+      fullscreen={fullscreen}
+      showRecentDocuments={showRecentDocuments}
+      recentDocuments={recentDocuments}
     />
   )
 }

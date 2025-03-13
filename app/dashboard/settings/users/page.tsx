@@ -14,7 +14,7 @@ export default async function UsersSettingsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">จัดการผู้ใช้ระบบ</h1>
+      <h1 className="text-2xl text-center font-bold text-gray-800 mb-6">จัดการผู้ใช้ระบบ</h1>
       <UserManagementTable />
     </div>
   );

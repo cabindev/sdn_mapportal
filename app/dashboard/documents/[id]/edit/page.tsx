@@ -5,17 +5,22 @@ import { updateDocument } from '@/app/lib/actions/documents/update'
 import { getCategories } from '@/app/lib/actions/categories/get'
 import DocumentForm from '@/app/dashboard/map/components/DocumentForm'
 import { DocumentWithCategory, LocationData } from '@/app/types/document'
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation';
 
 interface PageProps {
   params: Promise<{ id: string }>
 }
 
 export default async function EditDocumentPage({ params }: PageProps) {
-  // รอให้ params พร้อมก่อนใช้งาน
+  // รอให้ params พร้อมก่อนใช้งาน (ใช้ await กับ params ที่เป็น Promise ใน Next.js 15)
   const { id } = await params
   
-  const documentData = await getDocument(id)
-  const categories = await getCategories()
+  // ดึงข้อมูลเอกสารและหมวดหมู่
+  const [documentData, categories] = await Promise.all([
+    getDocument(id),
+    getCategories()
+  ])
   
   if (!documentData) {
     notFound()
@@ -29,6 +34,29 @@ export default async function EditDocumentPage({ params }: PageProps) {
     amphoe: documentData.amphoe,
     district: documentData.district,
     geocode: 0  // กำหนดค่าเริ่มต้น หรือดึงจากข้อมูลถ้ามี
+  }
+
+  // ฟังก์ชันสำหรับอัพเดทเอกสาร (Server Action)
+  async function handleUpdateDocument(formData: FormData) {
+    'use server'
+    
+    // เพิ่มข้อมูลตำแหน่งที่จำเป็นลงใน formData
+// เพิ่มการตรวจสอบว่า documentData มีค่าก่อนเข้าถึงคุณสมบัติ
+    if (documentData) {
+      formData.append('district', documentData.district)
+      formData.append('amphoe', documentData.amphoe)
+      formData.append('province', documentData.province)
+      formData.append('latitude', documentData.latitude.toString())
+      formData.append('longitude', documentData.longitude.toString())
+    }
+    
+    // อัพเดทเอกสาร
+    await updateDocument(id, formData)
+    
+    // รีวาลิเดทเส้นทางเพื่ออัพเดทแคช
+    revalidatePath(`/dashboard/documents`)
+    revalidatePath(`/dashboard/documents/${id}`)
+    redirect('/dashboard/documents')
   }
 
   return (
@@ -60,18 +88,7 @@ export default async function EditDocumentPage({ params }: PageProps) {
         initialData={documentData as unknown as DocumentWithCategory}
         location={locationData}
         categories={categories}
-        action={async (formData: FormData) => {
-          'use server'
-          
-          // Add necessary location data to formData
-          formData.append('district', documentData.district)
-          formData.append('amphoe', documentData.amphoe)
-          formData.append('province', documentData.province)
-          formData.append('latitude', documentData.latitude.toString())
-          formData.append('longitude', documentData.longitude.toString())
-          
-          await updateDocument(id, formData)
-        }}
+        action={handleUpdateDocument}
       />
     </div>
   )

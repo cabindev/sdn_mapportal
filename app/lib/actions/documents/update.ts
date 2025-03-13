@@ -1,7 +1,6 @@
-// app/lib/actions/documents/update.ts
+// lib/actions/documents/update.ts
 'use server'
 
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import prisma from '../../db'
 import { uploadFile } from '../../upload'
@@ -17,6 +16,10 @@ export async function updateDocument(id: string, formData: FormData) {
     const province = formData.get('province')?.toString()
     const latitude = formData.get('latitude')?.toString()
     const longitude = formData.get('longitude')?.toString()
+    
+    // ตรวจสอบค่า isPublished (checkbox จะส่งค่ามาเฉพาะเมื่อถูกเลือก)
+    const isPublished = formData.has('isPublished')
+    console.log('isPublished value in server action:', isPublished)
 
     // 2. ตรวจสอบข้อมูลที่จำเป็น
     if (!title || !description || !categoryId || !district || !amphoe || !province) {
@@ -33,43 +36,44 @@ export async function updateDocument(id: string, formData: FormData) {
       province,
       latitude: latitude ? parseFloat(latitude) : 0,
       longitude: longitude ? parseFloat(longitude) : 0,
+      isPublished, // เพิ่มค่า isPublished
     }
 
-  // 4. ตรวจสอบและอัพโหลดไฟล์ใหม่ (ถ้ามี)
-  const documentFile = formData.get('document') as File | Blob | null
-  const coverImage = formData.get('coverImage') as File | Blob | null
+    // 4. ตรวจสอบและอัพโหลดไฟล์ใหม่ (ถ้ามี)
+    const documentFile = formData.get('document') as File | Blob | null
+    const coverImage = formData.get('coverImage') as File | Blob | null
 
-  if (documentFile instanceof File && documentFile.size > 0) {
-    try {
-      const newFilePath = await uploadFile(documentFile, 'documents')
-      updateData.filePath = newFilePath
-    } catch (error) {
-      console.error('Document upload error:', error)
-      throw new Error('เกิดข้อผิดพลาดในการอัพโหลดไฟล์เอกสาร')
+    if (documentFile instanceof File && documentFile.size > 0) {
+      try {
+        const newFilePath = await uploadFile(documentFile, 'documents')
+        updateData.filePath = newFilePath
+      } catch (error) {
+        console.error('Document upload error:', error)
+        throw new Error('เกิดข้อผิดพลาดในการอัพโหลดไฟล์เอกสาร')
+      }
     }
-  }
 
-  if (coverImage instanceof File && coverImage.size > 0) {
-    try {
-      const newCoverPath = await uploadFile(coverImage, 'covers')
-      updateData.coverImage = newCoverPath
-    } catch (error) {
-      console.error('Cover image upload error:', error)
-      throw new Error('เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ')
+    if (coverImage instanceof File && coverImage.size > 0) {
+      try {
+        const newCoverPath = await uploadFile(coverImage, 'covers')
+        updateData.coverImage = newCoverPath
+      } catch (error) {
+        console.error('Cover image upload error:', error)
+        throw new Error('เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ')
+      }
     }
-  }
 
     // 5. อัพเดทข้อมูลในฐานข้อมูล
-    await prisma.document.update({
+    const updatedDocument = await prisma.document.update({
       where: { id: parseInt(id) },
       data: updateData
     })
 
-    // 6. Revalidate และ redirect
-    revalidatePath('/dashboard/documents')
-    redirect('/dashboard/documents')
+    // 6. คืนค่าข้อมูลที่อัพเดตแล้ว
+    return updatedDocument
 
   } catch (error) {
+    console.error('Error updating document:', error)
     if (error instanceof Error) {
       throw error
     }

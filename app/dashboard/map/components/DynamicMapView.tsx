@@ -17,10 +17,13 @@ import TambonSearch from "./TambonSearch";
 import LocationMarker from "./LocationMarker";
 import ProvinceMarkers from "./ProvinceMarkers";
 
-// นำเข้า RecentDocumentsSidebar แบบ dynamic
+// นำเข้า RecentDocumentsSidebar แบบ dynamic และเฉพาะเมื่อจำเป็น
 const RecentDocumentsSidebar = dynamic(
   () => import("./RecentDocumentsSidebar"),
-  { ssr: false }
+  { 
+    ssr: false, 
+    loading: () => <div className="absolute top-4 right-4 bg-white/50 rounded-md p-4 shadow-sm animate-pulse w-64 h-80"></div> 
+  }
 );
 
 // CSS สำหรับ custom marker และ animation
@@ -99,10 +102,10 @@ interface DynamicMapViewProps {
   selectedCategories?: number[];
   setSelectedCategories?: (ids: number[]) => void;
   simplified?: boolean;
-  fullscreen?: boolean; // เพิ่ม prop สำหรับควบคุมการแสดงแบบเต็มหน้าจอ
-  showRecentDocuments?: boolean; // เพิ่ม props สำหรับควบคุมการแสดง RecentDocumentsSidebar
-  recentDocuments?: DocumentWithCategory[]; // เพิ่ม props สำหรับรายการเอกสารล่าสุดแยกต่างหาก
-  onHoverDocument?: (documentId: number | null) => void; // เพิ่ม callback สำหรับการ hover
+  fullscreen?: boolean;
+  showRecentDocuments?: boolean;
+  recentDocuments?: DocumentWithCategory[]; 
+  onHoverDocument?: (documentId: number | null) => void;
 }
 
 export default function DynamicMapView({
@@ -111,8 +114,8 @@ export default function DynamicMapView({
   selectedCategories: externalSelectedCategories,
   setSelectedCategories: externalSetSelectedCategories,
   simplified = false,
-  fullscreen = false, // default เป็น false
-  showRecentDocuments = true, // ค่าเริ่มต้นคือแสดง
+  fullscreen = false,
+  showRecentDocuments = false, // ค่าเริ่มต้นเป็น false
   recentDocuments: externalRecentDocuments,
   onHoverDocument: externalOnHoverDocument,
 }: DynamicMapViewProps) {
@@ -192,15 +195,19 @@ export default function DynamicMapView({
     loadDocuments();
   }, [categories, externalDocuments]);
 
+  // คำนวณเอกสารล่าสุดเฉพาะเมื่อต้องแสดง
+  const recentDocs = useMemo(() => {
+    if (!showRecentDocuments) return [];
+    
+    return externalRecentDocuments || 
+      [...documents].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ).slice(0, 10);
+  }, [showRecentDocuments, externalRecentDocuments, documents]);
+
   if (isLoading) {
     return <CircleLoader />;
   }
-
-  // สร้างรายการเอกสารล่าสุด
-  const recentDocs = externalRecentDocuments || 
-    [...documents].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ).slice(0, 10); // เพิ่มเป็น 10 รายการตามที่ต้องการ
 
   return (
     <div className="w-full h-full relative">
@@ -245,7 +252,7 @@ export default function DynamicMapView({
           {/* แสดง ZoomControl ในตำแหน่งที่ด้านบนขวา */}
           <ZoomControl position="topright" />
           
-          {/* แสดงรายการเอกสารล่าสุด */}
+          {/* แสดงรายการเอกสารล่าสุดเฉพาะเมื่อต้องการ และมีเอกสาร */}
           {showRecentDocuments && documents.length > 0 && (
             <RecentDocumentsSidebar
               documents={recentDocs}

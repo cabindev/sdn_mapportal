@@ -1,16 +1,15 @@
 // app/page.tsx
 import { getCategories } from '@/app/lib/actions/categories/get'
-import { getDocuments } from '@/app/lib/actions/documents/get'
-import MapClientWrapper from './components/MapClientWrapper'
-import RecentDocumentsSidebar from './dashboard/map/components/RecentDocumentsSidebar'
+import { getPublishedDocuments } from '@/app/lib/actions/documents/get'
 import Link from 'next/link'
 import { getCategoryColor } from '@/app/utils/colorGenerator'
 import { FiMap, FiFileText, FiFilter, FiInfo, FiChevronRight } from 'react-icons/fi'
+import MapFilterWrapper from './components/MapFilterWrapper'
 
 export default async function HomePage() {
   const [categories, documents] = await Promise.all([
     getCategories(),
-    getDocuments()
+    getPublishedDocuments()
   ])
 
   // Group documents by province
@@ -30,18 +29,15 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen pt-2 bg-gradient-to-br from-white to-gray-50">
-      {/* Map Section - Moved to top */}
-      <div className="container mx-auto px-4 mb-16 mt-0">
-  <div className="h-[750px] bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 relative">
-    <MapClientWrapper 
-      categories={categories} 
-      documents={documents}
-      simplified={true} 
-      fullscreen={true}
-      showRecentDocuments={true}
-    />
-  </div>
-</div>
+      {/* Map Section with Filter - Moved to top */}
+      <div className="container mx-auto px-8 mb-16 mt-0">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 relative">
+          <MapFilterWrapper 
+            categories={categories} 
+            documents={documents}
+          />
+        </div>
+      </div>
 
       {/* Hero Section - Moved below map */}
       <div className="relative bg-gradient-to-r from-orange-600 to-orange-400 text-white pt-16 pb-32 px-4 overflow-hidden">
@@ -79,7 +75,7 @@ export default async function HomePage() {
         <div className="bg-white rounded-xl shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-gray-800">
           <div className="text-center p-4 border-b md:border-b-0 md:border-r border-gray-100">
             <p className="text-4xl font-bold text-orange-500 mb-1">{documents.length}</p>
-            <p className="text-gray-600">เอกสารทั้งหมด</p>
+            <p className="text-gray-600">เอกสารที่เผยแพร่</p>
           </div>
           <div className="text-center p-4 border-b md:border-b-0 md:border-r border-gray-100">
             <p className="text-4xl font-bold text-orange-500 mb-1">{categories.length}</p>
@@ -124,7 +120,6 @@ export default async function HomePage() {
                 );
               })}
             </div>
-    
           </div>
           
           {/* Popular Areas */}
@@ -150,7 +145,6 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-      
           </div>
         </div>
       </div>

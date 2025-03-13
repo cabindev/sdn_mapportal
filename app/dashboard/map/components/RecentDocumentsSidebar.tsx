@@ -5,6 +5,10 @@ import { useState, useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import { DocumentWithCategory } from "@/app/types/document";
 import { getCategoryColor } from "@/app/utils/colorGenerator";
+import { createPortal } from "react-dom";
+
+// นำเข้า DocumentPopup
+import DocumentPopup from "./DocumentPopup";
 
 interface RecentDocumentsSidebarProps {
   documents: DocumentWithCategory[];
@@ -19,6 +23,8 @@ export default function RecentDocumentsSidebar({
   const [hoveredDocId, setHoveredDocId] = useState<number | null>(null);
   const [documents, setDocuments] = useState<DocumentWithCategory[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<DocumentWithCategory | null>(null);
+  const [viewCount, setViewCount] = useState(0);
+  const [downloadCount, setDownloadCount] = useState(0);
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -85,11 +91,49 @@ export default function RecentDocumentsSidebar({
   // เมื่อคลิกที่เอกสาร
   const handleDocumentClick = (doc: DocumentWithCategory) => {
     setSelectedDoc(doc);
+    setViewCount(doc.viewCount);
+    setDownloadCount(doc.downloadCount);
   };
   
   // ปิด popup
   const closePopup = () => {
     setSelectedDoc(null);
+  };
+
+  // ฟังก์ชันเพิ่มจำนวนการดู
+  const handleViewDocument = async () => {
+    if (!selectedDoc) return;
+    
+    try {
+      // เรียกใช้ API สำหรับเพิ่มจำนวนการดู
+      const response = await fetch(`/api/documents/view/${selectedDoc.id}`, {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        setViewCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
+    }
+  };
+  
+  // ฟังก์ชันเพิ่มจำนวนการดาวน์โหลด
+  const handleDownload = async () => {
+    if (!selectedDoc) return;
+    
+    try {
+      // เรียกใช้ API สำหรับเพิ่มจำนวนการดาวน์โหลด
+      const response = await fetch(`/api/documents/download/${selectedDoc.id}`, {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        setDownloadCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error incrementing download count:', error);
+    }
   };
 
   // ป้องกัน scroll propagation เพิ่มเติม
@@ -99,7 +143,7 @@ export default function RecentDocumentsSidebar({
   
   return (
     <>
-      <div className="absolute top-4 right-16 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden z-[900] w-72 max-h-[calc(100vh-150px)] hidden md:block">
+      <div className="absolute top-4 left-24 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden z-[900] w-72 max-h-[calc(100vh-150px)] hidden md:block">
         <div className="px-3 py-2.5 bg-blue-50/90 backdrop-blur-sm border-b border-blue-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-blue-800">เอกสารล่าสุด</h3>
           <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
@@ -186,137 +230,19 @@ export default function RecentDocumentsSidebar({
         </div>
       </div>
 
-      {/* Document Popup */}
-      {selectedDoc && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]" onClick={closePopup}>
-          {(() => {
-            const colorScheme = getCategoryColor(selectedDoc.categoryId);
-            
-            return (
-              <div 
-                className="bg-white rounded-lg shadow-xl overflow-hidden max-w-3xl w-full max-h-[90vh] flex flex-col" 
-                onClick={e => e.stopPropagation()}
-              >
-                <div 
-                  className="p-4 border-b flex justify-between items-center"
-                  style={{ 
-                    backgroundColor: `${colorScheme.primary}10`,
-                    borderColor: `${colorScheme.primary}30`
-                  }}
-                >
-                  <h3 className="text-xl font-semibold" style={{ color: colorScheme.primary }}>
-                    {selectedDoc.title}
-                  </h3>
-                  <button 
-                    onClick={closePopup}
-                    className="p-1.5 hover:bg-white/30 rounded-full text-gray-600 hover:text-gray-800 transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                
-                <div className="overflow-y-auto p-4 flex-grow">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {selectedDoc.coverImage && (
-                      <div className="w-full h-48 md:h-full rounded-lg overflow-hidden bg-gray-100">
-                        <img 
-                          src={selectedDoc.coverImage} 
-                          alt={selectedDoc.title} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    
-                    <div>
-                      <div className="mb-4">
-                        {selectedDoc.category && (
-                          <span 
-                            className="inline-block px-3 py-1 rounded-full text-sm font-medium" 
-                            style={{ 
-                              backgroundColor: `${colorScheme.primary}20`,
-                              color: colorScheme.primary
-                            }}
-                          >
-                            {selectedDoc.category.name}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-500">รายละเอียด</h4>
-                          <p className="text-gray-800">{selectedDoc.description || 'ไม่มีรายละเอียด'}</p>
-                        </div>
-                        
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-500">ตำแหน่ง</h4>
-                          <p className="text-gray-800">
-                            {selectedDoc.district}, {selectedDoc.amphoe}, {selectedDoc.province}
-                          </p>
-                        </div>
-                        
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-500">วันที่สร้าง</h4>
-                          <p className="text-gray-800">{new Date(selectedDoc.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div 
-                  className="p-4 border-t flex justify-end gap-3"
-                  style={{ 
-                    backgroundColor: `${colorScheme.primary}05`,
-                    borderColor: `${colorScheme.primary}20`
-                  }}
-                >
-                  {selectedDoc.filePath && (
-                    <>
-                      <a 
-                        href={selectedDoc.filePath} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={{ 
-                          backgroundColor: colorScheme.primary,
-                        }}
-                        className="px-4 py-2 text-white rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        ดูเอกสาร
-                      </a>
-                      <a 
-                        href={`${selectedDoc.filePath}?download=true`} 
-                        download
-                        style={{ 
-                          backgroundColor: `${colorScheme.primary}15`,
-                          color: colorScheme.primary
-                        }}
-                        className="px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        ดาวน์โหลด
-                      </a>
-                    </>
-                  )}
-                  <button 
-                    onClick={closePopup}
-                    className="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg font-medium"
-                  >
-                    ปิด
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
+      {/* ใช้ DocumentPopup component แทนการเขียน HTML ตรงๆ */}
+      {selectedDoc && typeof document !== 'undefined' && createPortal(
+        <DocumentPopup 
+          document={{
+            ...selectedDoc,
+            viewCount,
+            downloadCount
+          }}
+          onClose={closePopup}
+          onView={handleViewDocument}
+          onDownload={handleDownload}
+        />,
+        document.body
       )}
     </>
   );

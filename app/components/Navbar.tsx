@@ -205,7 +205,7 @@ const Navbar = () => {
                     
                     <div className="py-1">
                       <Link 
-                        href="/dashboard/profile" 
+                        href="/profile" 
                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
                         onClick={() => setIsMenuOpen(false)}
                       >
@@ -213,6 +213,14 @@ const Navbar = () => {
                         Profile
                       </Link>
                       
+                      <Link 
+                        href="/settings" 
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <FiSettings className="mr-3 h-4 w-4" />
+                        Settings
+                      </Link>
                     </div>
                     
                     <div className="py-1 border-t border-gray-100">
@@ -339,7 +347,14 @@ const Navbar = () => {
                     <FiUser className="mr-3 h-5 w-5" />
                     Profile
                   </Link>
-               
+                  <Link
+                    href="/settings"
+                    className="flex items-center px-3 py-2 text-base text-gray-700 hover:bg-gray-50/50"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <FiSettings className="mr-3 h-5 w-5" />
+                    Settings
+                  </Link>
                   <button
                     onClick={() => {
                       handleSignOut();
