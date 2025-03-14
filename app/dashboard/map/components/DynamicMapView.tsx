@@ -158,6 +158,7 @@ export default function DynamicMapView({
   const { filteredDocuments, sortedDocuments, processedDocuments } =
     useProcessedDocuments(documents, selectedCategories, highlightedDocId);
 
+    
   // เพิ่ม CSS styles
   useEffect(() => {
     const cleanup = addCustomStyles();
@@ -181,7 +182,8 @@ export default function DynamicMapView({
     const loadDocuments = async () => {
       try {
         const docs = await getDocuments();
-        setInternalDocuments(docs);
+        // ใช้ Type Assertion เพื่อแก้ปัญหา Type Error
+        setInternalDocuments(docs as DocumentWithCategory[]);
         // เริ่มต้นแสดงทุกหมวดหมู่
         setInternalSelectedCategories(categories.map((c) => c.id));
       } catch (error) {
