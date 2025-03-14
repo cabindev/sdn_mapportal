@@ -1,4 +1,0 @@
--- AlterTable
-ALTER TABLE `Document` ADD COLUMN `downloadCount` INTEGER NOT NULL DEFAULT 0,
-    ADD COLUMN `isPublished` BOOLEAN NOT NULL DEFAULT true,
-    ADD COLUMN `viewCount` INTEGER NOT NULL DEFAULT 0;

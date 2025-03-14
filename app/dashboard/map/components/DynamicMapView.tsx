@@ -182,8 +182,7 @@ export default function DynamicMapView({
     const loadDocuments = async () => {
       try {
         const docs = await getDocuments();
-        // ใช้ Type Assertion เพื่อแก้ปัญหา Type Error
-        setInternalDocuments(docs as DocumentWithCategory[]);
+        setInternalDocuments(docs);
         // เริ่มต้นแสดงทุกหมวดหมู่
         setInternalSelectedCategories(categories.map((c) => c.id));
       } catch (error) {
