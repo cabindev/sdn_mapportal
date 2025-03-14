@@ -38,6 +38,7 @@ export interface DocumentFormState {
   filePath?: string;
   coverImage?: string | null;
   isPublished: boolean;
+  year?: number;
   location: LocationData;
 }
 

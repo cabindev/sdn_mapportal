@@ -107,6 +107,17 @@ export default function DocumentForm({
     try {
       const formData = new FormData(e.currentTarget)
       
+      // ตรวจสอบค่าปี พ.ศ.
+      const yearValue = formData.get('year')?.toString()
+      if (yearValue) {
+        const year = parseInt(yearValue)
+        if (isNaN(year) || year < 2500 || year > 2700) {
+          toast.error('กรุณาระบุปี พ.ศ. ที่ถูกต้อง (2500-2700)')
+          setInternalIsSubmitting(false)
+          return
+        }
+      }
+      
       // ถ้ามีการเลือกไฟล์ภาพใหม่ ทำการบีบอัดก่อนแนบไปกับ FormData
       if (selectedImageFile) {
         // ลบ coverImage เดิมที่อยู่ใน formData (ที่ถูกเพิ่มโดย form browser)
@@ -264,6 +275,28 @@ export default function DocumentForm({
             placeholder="กรอกรายละเอียดเอกสาร"
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
           />
+        </div>
+
+        {/* ปี พ.ศ. */}
+        <div className="space-y-2">
+          <label className="block font-medium text-gray-700">
+            ปี พ.ศ. ที่ออกเอกสาร
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              name="year"
+              min="2500"
+              max="2700"
+              defaultValue={initialData?.year || new Date().getFullYear() + 543}
+              placeholder="ระบุปี พ.ศ. เช่น 2567"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <span className="text-gray-500">พ.ศ.</span>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500">ระบุปี พ.ศ. ของเอกสาร เช่น 2567, 2568 เป็นต้น</p>
         </div>
 
         {/* ไฟล์เอกสาร */}

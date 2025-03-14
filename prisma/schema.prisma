@@ -47,6 +47,7 @@ model CategoryDoc {
 
   @@index([name])
 }
+// prisma/schema.prisma
 model Document {
   id            Int         @id @default(autoincrement())
   title         String
@@ -60,6 +61,7 @@ model Document {
   district      String
   latitude      Float
   longitude     Float
+  year          Int?        // เพิ่มฟิลด์ปี พ.ศ.
   viewCount     Int         @default(0)
   downloadCount Int         @default(0)   
   isPublished   Boolean     @default(true) 
@@ -67,4 +69,5 @@ model Document {
   updatedAt     DateTime    @updatedAt
 
   @@index([categoryId])
+  @@index([year])           // เพิ่ม index สำหรับการค้นหาตามปี
 }

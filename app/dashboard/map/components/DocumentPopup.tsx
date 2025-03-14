@@ -18,6 +18,21 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
   const [isOverflowing, setIsOverflowing] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
+  const calculateDocumentAge = (documentYear: number): string => {
+    if (!documentYear) return "";
+    
+    const currentYear = new Date().getFullYear() + 543; // แปลงเป็นปี พ.ศ.
+    const yearDiff = currentYear - documentYear;
+    
+    if (yearDiff === 0) {
+      return "ปีปัจจุบัน";
+    } else if (yearDiff === 1) {
+      return "1 ปีที่แล้ว";
+    } else {
+      return `${yearDiff} ปีที่แล้ว`;
+    }
+  };
+
   // ตรวจสอบว่ามีข้อความล้นหรือไม่
   useEffect(() => {
     if (descriptionRef.current) {
@@ -126,6 +141,27 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
             </div>
           </div>
           
+          <div className="flex items-center text-gray-600 text-sm mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            {new Date(document.createdAt).toLocaleString('th-TH', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+            
+            {document.year && (
+              <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs">
+              เอกสารออกเมื่อ  ปี พ.ศ. {document.year} 
+                <span className="ml-1 text-gray-500">({calculateDocumentAge(document.year)})</span>
+              </span>
+            )}
+          </div>
+
           <div className="flex text-xs text-gray-500 pt-3 border-t border-gray-200">
             <div className="flex items-center mr-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

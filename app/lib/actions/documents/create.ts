@@ -21,10 +21,19 @@ export async function createDocument(formData: FormData) {
     const longitude = formData.get('longitude')?.toString()
     const zone = formData.get('zone') as string || null
     const isPublished = formData.get('isPublished') === 'on' || formData.get('isPublished') === 'true'
+    
+    // ดึงค่าปี พ.ศ.
+    const yearValue = formData.get('year')?.toString()
+    const year = yearValue ? parseInt(yearValue) : null
 
     // 2. ตรวจสอบข้อมูลที่จำเป็น
     if (!title || !description || !categoryId || !district || !amphoe || !province) {
       throw new Error('กรุณากรอกข้อมูลให้ครบถ้วน')
+    }
+    
+    // ตรวจสอบค่าปีว่าถูกต้องหรือไม่
+    if (yearValue && (isNaN(year!) || year! < 2500 || year! > 2700)) {
+      throw new Error('กรุณาระบุปี พ.ศ. ที่ถูกต้อง (2500-2700)')
     }
 
     // 3. ตรวจสอบไฟล์
@@ -71,6 +80,7 @@ export async function createDocument(formData: FormData) {
         province,
         latitude: latitude ? parseFloat(latitude) : 0,
         longitude: longitude ? parseFloat(longitude) : 0,
+        year,  // เพิ่มค่าปี พ.ศ.
         filePath,
         coverImage: coverImagePath,
         isPublished
