@@ -27,7 +27,7 @@ export interface RegionData {
 export interface DocumentWithCategory extends Document {
   category: CategoryDoc;
   isLatest?: boolean;
-  
+  year?: number; 
 }
 
 // สำหรับการส่งข้อมูลฟอร์ม
@@ -38,7 +38,6 @@ export interface DocumentFormState {
   filePath?: string;
   coverImage?: string | null;
   isPublished: boolean;
-  year?: number;
   location: LocationData;
 }
 
