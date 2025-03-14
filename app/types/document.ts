@@ -27,7 +27,7 @@ export interface RegionData {
 export interface DocumentWithCategory extends Document {
   category: CategoryDoc;
   isLatest?: boolean;
-  year: number | null; 
+  year: number | null;
 }
 
 // สำหรับการส่งข้อมูลฟอร์ม
