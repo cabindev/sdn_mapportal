@@ -14,7 +14,7 @@ const DynamicMapView = dynamic(
   () => import('@/app/dashboard/map/components/DynamicMapView'),
   { 
     ssr: false, 
-    loading: () => <div className="h-[700px] flex items-center justify-center">
+    loading: () => <div className="h-full w-full flex items-center justify-center min-h-[500px]">
       <div className="text-center">
         <div className="inline-block w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
         <p className="mt-2 text-sm text-gray-600">กำลังโหลดแผนที่...</p>
@@ -26,9 +26,16 @@ const DynamicMapView = dynamic(
 interface MapFilterWrapperProps {
   categories: CategoryDoc[]
   documents: DocumentWithCategory[]
+  fullHeight?: boolean // เพิ่ม prop สำหรับควบคุมความสูง
+  showTitle?: boolean // เพิ่ม prop สำหรับควบคุมการแสดงชื่อ
 }
 
-export default function MapFilterWrapper({ categories, documents }: MapFilterWrapperProps) {
+export default function MapFilterWrapper({ 
+  categories, 
+  documents, 
+  fullHeight = false,
+  showTitle = true
+}: MapFilterWrapperProps) {
   const [selectedCategories, setSelectedCategories] = useState<number[]>([])
   const [expanded, setExpanded] = useState(false)
   
@@ -54,32 +61,37 @@ export default function MapFilterWrapper({ categories, documents }: MapFilterWra
     
     setSelectedCategories(newSelected)
   }
+
+  // กำหนดความสูงของแผนที่ตาม prop
+  const mapHeight = fullHeight 
+    ? 'h-[75vh] md:h-[80vh] min-h-[600px]' // สูงเมื่อต้องการพื้นที่เต็ม
+    : 'h-[500px] md:h-[600px]'; // ความสูงปกติ
   
   return (
     <>
       {/* ส่วนหัวตัวกรอง */}
       <div className="px-4 py-2 flex items-center justify-between border-b border-gray-200">
         <div className="flex items-center gap-2">
-          <FiMap className="text-orange-500 mr-1 text-xl" />
-          <h2 className="text-lg font-bold text-slate-800">แผนที่เอกสารดิจิทัล</h2>
+          <FiMap className="text-orange-500 text-xl" />
+          {showTitle && <h2 className="text-lg font-bold text-slate-800 hidden sm:block">แผนที่เอกสารดิจิทัล</h2>}
         </div>
         
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 hidden sm:block">
             แสดง {selectedCategories.length === 0 ? 0 : documents.filter(doc => 
               selectedCategories.includes(doc.categoryId)
             ).length} จาก {documents.length} เอกสารที่เผยแพร่
           </span>
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-sm px-3 py-1.5 bg-white hover:bg-orange-50 text-orange-600 rounded-md transition-colors flex items-center border border-orange-200"
+            className="text-sm px-2 sm:px-3 py-1.5 bg-white hover:bg-orange-50 text-orange-600 rounded-md transition-colors flex items-center border border-orange-200"
           >
-            <FiFilter className="mr-1.5" />
-            {expanded ? "ซ่อนตัวกรอง" : "แสดงตัวกรอง"}
+            <FiFilter className={expanded ? "mr-0 sm:mr-1.5" : "mr-0 sm:mr-1.5"} />
+            <span className="hidden sm:inline">{expanded ? "ซ่อนตัวกรอง" : "แสดงตัวกรอง"}</span>
           </button>
         </div>
       </div>
-      
+        
       {/* ส่วนตัวกรอง (แสดงเมื่อกดเปิด) */}
       {expanded && (
         <div className="py-3 px-4 bg-gray-50 border-b border-gray-200">
@@ -122,8 +134,8 @@ export default function MapFilterWrapper({ categories, documents }: MapFilterWra
         </div>
       )}
       
-      {/* แผนที่ */}
-      <div className="h-[700px]">
+      {/* แผนที่ - ใช้ความสูงที่ปรับตาม prop */}
+      <div className={`${mapHeight} relative`}>
         <DynamicMapView 
           categories={categories} 
           documents={documents}

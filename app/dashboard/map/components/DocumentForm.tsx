@@ -7,6 +7,7 @@ import { LocationData, DocumentWithCategory } from '@/app/types/document'
 import { createDocument } from '@/app/lib/actions/documents/create'
 import { toast } from 'react-hot-toast'
 import Image from 'next/image'
+import imageCompression from 'browser-image-compression'
 
 interface DocumentFormProps {
   categories: CategoryDoc[];
@@ -33,6 +34,7 @@ export default function DocumentForm({
   const isSubmitting = externalIsSubmitting !== undefined ? externalIsSubmitting : internalIsSubmitting;
   
   const [previewImage, setPreviewImage] = useState<string | null>(initialData?.coverImage || null)
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
 
   // สร้าง locationData จาก initialData หรือ location
   const locationData = initialData ? {
@@ -44,16 +46,53 @@ export default function DocumentForm({
     geocode: 0 // หรือค่าที่เหมาะสม
   } : location;
 
+  const compressImage = async (file: File): Promise<File> => {
+    try {
+      // ตั้งค่าการบีบอัดภาพ
+      const options = {
+        maxSizeMB: 0.5, // ขนาดสูงสุดหลังบีบอัด (0.5MB)
+        maxWidthOrHeight: 1024, // ความกว้างหรือความสูงสูงสุด (1024px)
+        useWebWorker: true, // ใช้ Web Worker เพื่อไม่ให้กระทบกับ main thread
+        fileType: 'image/webp', // แปลงเป็นรูปแบบ WebP ซึ่งมีขนาดเล็กกว่า
+      }
+
+      // บีบอัดภาพ
+      const compressedFile = await imageCompression(file, options)
+      
+      // สร้างไฟล์ใหม่ด้วยนามสกุล .webp
+      const webpFile = new File(
+        [compressedFile], 
+        `${file.name.split('.')[0]}.webp`, 
+        { type: 'image/webp' }
+      )
+      
+      console.log(`ขนาดไฟล์ต้นฉบับ: ${(file.size / 1024 / 1024).toFixed(2)} MB`)
+      console.log(`ขนาดไฟล์หลังบีบอัด: ${(webpFile.size / 1024 / 1024).toFixed(2)} MB`)
+      
+      return webpFile
+    } catch (error) {
+      console.error('เกิดข้อผิดพลาดในการบีบอัดภาพ:', error)
+      toast.error('เกิดข้อผิดพลาดในการบีบอัดภาพ กรุณาลองใหม่อีกครั้ง')
+      // หากมีข้อผิดพลาด ให้ใช้ไฟล์ต้นฉบับ
+      return file
+    }
+  }
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('ขนาดไฟล์ต้องไม่เกิน 5MB')
+    // ตรวจสอบว่าเป็นไฟล์ภาพหรือไม่
+    if (!file.type.startsWith('image/')) {
+      toast.error('กรุณาอัพโหลดไฟล์รูปภาพเท่านั้น')
       e.target.value = ''
       return
     }
 
+    // เก็บไฟล์ที่เลือกไว้เพื่อใช้ในการบีบอัดภายหลัง
+    setSelectedImageFile(file)
+
+    // สร้าง preview สำหรับแสดงในฟอร์ม
     const reader = new FileReader()
     reader.onloadend = () => {
       setPreviewImage(reader.result as string)
@@ -67,6 +106,19 @@ export default function DocumentForm({
   
     try {
       const formData = new FormData(e.currentTarget)
+      
+      // ถ้ามีการเลือกไฟล์ภาพใหม่ ทำการบีบอัดก่อนแนบไปกับ FormData
+      if (selectedImageFile) {
+        // ลบ coverImage เดิมที่อยู่ใน formData (ที่ถูกเพิ่มโดย form browser)
+        formData.delete('coverImage')
+        
+        // บีบอัดภาพและเพิ่มลงใน formData
+        const compressedImageFile = await compressImage(selectedImageFile)
+        formData.append('coverImage', compressedImageFile)
+        
+        // แสดงข้อความแจ้งเตือน
+        toast.success(`บีบอัดภาพสำเร็จ: ${(compressedImageFile.size / 1024 / 1024).toFixed(2)} MB`)
+      }
       
       // ถ้าเป็นโหมดสร้างใหม่
       if (location && !initialData) {
@@ -102,6 +154,7 @@ export default function DocumentForm({
       setInternalIsSubmitting(false)
     }
   }
+
   return (
     <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-lg border border-gray-100">
       <div className="flex justify-between items-center mb-6">
@@ -124,46 +177,46 @@ export default function DocumentForm({
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ข้อมูลตำแหน่ง */}
         {locationData && (
-  <div className="bg-orange-50 p-5 rounded-lg border border-orange-100">
-    <h3 className="font-medium mb-3 text-orange-800 flex items-center">
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-      ข้อมูลตำแหน่ง
-    </h3>
-    <div className="grid grid-cols-2 gap-4 mb-3">
-      <div className="bg-white p-2 rounded-md border border-orange-100">
-        <label className="text-sm text-gray-600 font-medium">Latitude</label>
-        <div className="text-sm font-medium text-gray-800">{locationData.lat.toFixed(6)}</div>
-      </div>
-      <div className="bg-white p-2 rounded-md border border-orange-100">
-        <label className="text-sm text-gray-600 font-medium">Longitude</label>
-        <div className="text-sm font-medium text-gray-800">{locationData.lng.toFixed(6)}</div>
-      </div>
-    </div>
-    <div className="bg-white p-3 rounded-md border border-orange-100 space-y-2">
-      <div className="flex">
-        <span className="text-sm font-medium text-gray-700 w-20">จังหวัด:</span> 
-        <span className="text-sm text-gray-800">{locationData.province}</span>
-      </div>
-      <div className="flex">
-        <span className="text-sm font-medium text-gray-700 w-20">อำเภอ:</span> 
-        <span className="text-sm text-gray-800">{locationData.amphoe}</span>
-      </div>
-      <div className="flex">
-        <span className="text-sm font-medium text-gray-700 w-20">ตำบล:</span> 
-        <span className="text-sm text-gray-800">{locationData.district}</span>
-      </div>
-      {locationData.zone && (
-        <div className="flex">
-          <span className="text-sm font-medium text-gray-700 w-20">ภูมิภาค:</span> 
-          <span className="text-sm text-gray-800 bg-orange-50 px-2 py-0.5 rounded">{locationData.zone}</span>
-        </div>
-      )}
-    </div>
-  </div>
-)}
+          <div className="bg-orange-50 p-5 rounded-lg border border-orange-100">
+            <h3 className="font-medium mb-3 text-orange-800 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              ข้อมูลตำแหน่ง
+            </h3>
+            <div className="grid grid-cols-2 gap-4 mb-3">
+              <div className="bg-white p-2 rounded-md border border-orange-100">
+                <label className="text-sm text-gray-600 font-medium">Latitude</label>
+                <div className="text-sm font-medium text-gray-800">{locationData.lat.toFixed(6)}</div>
+              </div>
+              <div className="bg-white p-2 rounded-md border border-orange-100">
+                <label className="text-sm text-gray-600 font-medium">Longitude</label>
+                <div className="text-sm font-medium text-gray-800">{locationData.lng.toFixed(6)}</div>
+              </div>
+            </div>
+            <div className="bg-white p-3 rounded-md border border-orange-100 space-y-2">
+              <div className="flex">
+                <span className="text-sm font-medium text-gray-700 w-20">จังหวัด:</span> 
+                <span className="text-sm text-gray-800">{locationData.province}</span>
+              </div>
+              <div className="flex">
+                <span className="text-sm font-medium text-gray-700 w-20">อำเภอ:</span> 
+                <span className="text-sm text-gray-800">{locationData.amphoe}</span>
+              </div>
+              <div className="flex">
+                <span className="text-sm font-medium text-gray-700 w-20">ตำบล:</span> 
+                <span className="text-sm text-gray-800">{locationData.district}</span>
+              </div>
+              {locationData.zone && (
+                <div className="flex">
+                  <span className="text-sm font-medium text-gray-700 w-20">ภูมิภาค:</span> 
+                  <span className="text-sm text-gray-800 bg-orange-50 px-2 py-0.5 rounded">{locationData.zone}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* หมวดหมู่ */}
         <div className="space-y-2">
@@ -282,7 +335,8 @@ export default function DocumentForm({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                   </svg>
                   <p className="mb-2 text-sm text-gray-700"><span className="font-medium">คลิกเพื่ออัพโหลดรูปภาพ</span></p>
-                  <p className="text-xs text-gray-500">JPG, PNG หรือ WEBP (สูงสุด 5MB)</p>
+                  <p className="text-xs text-gray-500">JPG, PNG หรือ WEBP</p>
+                  <p className="text-xs text-gray-500">ภาพจะถูกบีบอัดเป็น WebP ขนาดไม่เกิน 0.5MB</p>
                 </div>
                 <input 
                   type="file"
@@ -296,13 +350,24 @@ export default function DocumentForm({
             
             <div className={`${previewImage ? 'border rounded-lg overflow-hidden flex items-center justify-center' : 'hidden'}`}>
               {previewImage && (
-                <Image
-                  src={previewImage}
-                  alt="Preview"
-                  width={200}
-                  height={200}
-                  className="object-cover h-full w-full"
-                />
+                <div className="relative w-full h-full">
+                  <Image
+                    src={previewImage}
+                    alt="Preview"
+                    width={200}
+                    height={200}
+                    className="object-contain max-h-48 w-auto mx-auto"
+                  />
+                  {selectedImageFile && (
+                    <div className="mt-2 text-center">
+                      <p className="text-xs text-gray-500">
+                        ขนาดต้นฉบับ: {(selectedImageFile.size / 1024 / 1024).toFixed(2)} MB
+                        <br />
+                        ภาพจะถูกบีบอัดเป็น WebP ขนาดไม่เกิน 0.5MB
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

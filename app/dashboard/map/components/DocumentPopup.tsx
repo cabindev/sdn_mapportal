@@ -1,6 +1,7 @@
 // app/dashboard/map/components/DocumentPopup.tsx
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { DocumentWithCategory } from "@/app/types/document";
 import { getCategoryColor } from "@/app/utils/colorGenerator";
 
@@ -13,6 +14,17 @@ interface DocumentPopupProps {
 
 export default function DocumentPopup({ document, onClose, onView, onDownload }: DocumentPopupProps) {
   const colorScheme = getCategoryColor(document.categoryId);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const descriptionRef = useRef<HTMLDivElement>(null);
+
+  // ตรวจสอบว่ามีข้อความล้นหรือไม่
+  useEffect(() => {
+    if (descriptionRef.current) {
+      const element = descriptionRef.current;
+      setIsOverflowing(element.scrollHeight > element.clientHeight);
+    }
+  }, [document.description]);
 
   return (
     <>
@@ -56,7 +68,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
           </button>
         </div>
         
-        <div className="p-5">
+        <div className="p-5 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 180px)' }}>
           <h3 className="text-lg font-semibold text-gray-800 mb-3">{document.title}</h3>
           
           <div className="flex items-center text-gray-600 text-sm mb-4">
@@ -74,11 +86,28 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
           </div>
           
           {document.description && (
-            <div className="text-sm text-gray-600 mb-4">
-              {document.description.length > 200 
-                ? `${document.description.substring(0, 200)}...` 
-                : document.description
-              }
+            <div className="mb-4">
+              <div className="relative">
+                <div 
+                  ref={descriptionRef}
+                  className={`text-sm text-gray-600 ${!isExpanded ? 'line-clamp-3' : ''}`}
+                >
+                  {document.description}
+                </div>
+                
+                {isOverflowing && !isExpanded && (
+                  <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent"></div>
+                )}
+              </div>
+              
+              {isOverflowing && (
+                <button 
+                  className="mt-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                >
+                  {isExpanded ? 'แสดงน้อยลง' : 'อ่านเพิ่มเติม'}
+                </button>
+              )}
             </div>
           )}
           

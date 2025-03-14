@@ -28,32 +28,23 @@ export default async function HomePage() {
     .slice(0, 5);
 
   return (
-    <main className="min-h-screen pt-2 bg-gradient-to-br from-white to-gray-50">
-      {/* Map Section with Filter - Moved to top */}
-      <div className="container mx-auto px-8 mb-16 mt-0">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 relative">
-          <MapFilterWrapper 
-            categories={categories} 
-            documents={documents}
-          />
+    <main className="min-h-screen">
+      {/* Hero Section + Map แบบรวมกัน */}
+      <div className="relative min-h-screen bg-gradient-to-r from-orange-600 to-orange-400 pt-20 pb-24">
+        <div className="absolute inset-0 opacity-10">
+          <div className="w-full h-full bg-[url('/images/map-pattern.jpeg')] bg-repeat bg-center"></div>
         </div>
-      </div>
-
-      {/* Hero Section - Moved below map */}
-      <div className="relative bg-gradient-to-r from-orange-600 to-orange-400 text-white pt-16 pb-32 px-4 overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full opacity-10">
-          <div className="w-full h-full bg-[url('/images/map-pattern.png')] bg-repeat bg-center"></div>
-        </div>
-        <div className="container mx-auto relative z-10">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">ระบบแผนที่เอกสาร SDN</h1>
-            <p className="text-lg md:text-xl opacity-90 mb-8">
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-white mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold">ระบบแผนที่เอกสาร SDN</h1>
+            <p className="text-lg md:text-xl opacity-90 mt-2 mb-6">
               เข้าถึงเอกสารสำคัญได้อย่างง่ายดาย ด้วยการนำเสนอในรูปแบบแผนที่ที่เข้าใจง่าย
             </p>
             <div className="flex flex-wrap gap-4">
               <Link 
                 href="/dashboard/map" 
-                className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-lg font-medium hover:bg-gray-100 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-lg font-medium hover:bg-gray-100 transition shadow-lg"
               >
                 <FiMap className="w-5 h-5" />
                 <span>จัดการเอกสาร</span>
@@ -67,11 +58,20 @@ export default async function HomePage() {
               </Link>
             </div>
           </div>
+          
+          {/* แผนที่ขนาดใหญ่เต็มพื้นที่ */}
+          <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100">
+            <MapFilterWrapper 
+              categories={categories} 
+              documents={documents}
+              fullHeight={true}
+              showTitle={false}
+            />
+          </div>
         </div>
       </div>
-
       {/* Stats Summary */}
-      <div className="container mx-auto px-4 -mt-16 mb-12 relative z-20">
+      <div className="container mx-auto px-4 -mt-20 mb-12 relative z-20">
         <div className="bg-white rounded-xl shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-gray-800">
           <div className="text-center p-4 border-b md:border-b-0 md:border-r border-gray-100">
             <p className="text-4xl font-bold text-orange-500 mb-1">{documents.length}</p>
