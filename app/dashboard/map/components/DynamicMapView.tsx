@@ -182,7 +182,15 @@ export default function DynamicMapView({
     const loadDocuments = async () => {
       try {
         const docs = await getDocuments();
-        setInternalDocuments(docs);
+        
+        // กำหนดค่า default ด้วยการคำนวณจากปีปัจจุบัน
+        const docsWithDefaults = docs.map(doc => ({
+          ...doc,
+          year: doc.year ?? (new Date().getFullYear() + 543), // ใช้ปี พ.ศ. ปัจจุบันถ้าไม่มีค่า
+          isLatest: false
+        }));
+        
+        setInternalDocuments(docsWithDefaults);
         // เริ่มต้นแสดงทุกหมวดหมู่
         setInternalSelectedCategories(categories.map((c) => c.id));
       } catch (error) {
@@ -273,13 +281,20 @@ export default function DynamicMapView({
             onSuccess={async () => {
               try {
                 const newDocs = await getDocuments();
+                
                 if (externalSetSelectedCategories && externalDocuments) {
                   // ถ้ามีการจัดการจากภายนอก ให้แจ้งเตือนสำเร็จและปิด
                   setSelectedLocation(null);
                   toast.success("บันทึกข้อมูลสำเร็จ");
                 } else {
                   // ถ้าจัดการภายใน ให้อัปเดตข้อมูล
-                  setInternalDocuments(newDocs);
+                  const docsWithDefaults = newDocs.map(doc => ({
+                    ...doc,
+                    year: doc.year ?? (new Date().getFullYear() + 543),
+                    isLatest: false
+                  }));
+                  
+                  setInternalDocuments(docsWithDefaults);
                   setSelectedLocation(null);
                   toast.success("บันทึกข้อมูลสำเร็จ");
                 }
