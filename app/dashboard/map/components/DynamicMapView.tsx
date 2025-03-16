@@ -88,7 +88,7 @@ const addCustomStyles = () => {
 
 // สไตล์ของขอบเขตประเทศไทย
 const THAILAND_STYLE = {
-  weight: 0.2,
+  weight: 0.1,
   opacity: 0.1,
   color: '#FF9500',
   fillOpacity: 0.05,
