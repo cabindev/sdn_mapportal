@@ -125,30 +125,7 @@ export default function MapPage() {
   // แสดงหน้าปกติ
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      {/* ส่วนหัวของหน้าแผนที่ - แสดงเฉพาะในหน้าจอกลางและใหญ่ */}
-      <div className="hidden md:flex bg-white shadow-sm py-3 px-4 items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <h1 className="text-lg font-medium text-gray-800">ระบบแผนที่เอกสารติดตามประเทศไทย</h1>
-          <span className="text-sm bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
-            {documents.length} เอกสาร
-          </span>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={toggleAllCategories}
-            className="text-sm px-3 py-1.5 bg-orange-50 text-orange-600 rounded-md hover:bg-orange-100 transition-colors"
-          >
-            {selectedCategories.length === categories.length ? 'ยกเลิกการเลือกทั้งหมด' : 'เลือกทั้งหมด'}
-          </button>
-          <button
-            onClick={() => window.location.href = '/dashboard/documents/new'}
-            className="text-sm px-3 py-1.5 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
-          >
-            + เพิ่มเอกสารใหม่
-          </button>
-        </div>
-      </div>
-      
+
       {/* โครงสร้างหลัก - แผนที่ขยายเต็มพื้นที่ */}
       <div className="flex-1 overflow-hidden relative">
         {isMapLoading && (
