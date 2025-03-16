@@ -39,7 +39,7 @@ export default async function HomePage() {
           <div className="text-white mb-8">
             <h1 className="text-4xl md:text-5xl font-bold">ระบบแผนที่เอกสาร SDN</h1>
             <p className="text-lg md:text-xl opacity-90 mt-2 mb-6">
-              เข้าถึงเอกสารสำคัญได้อย่างง่ายดาย ด้วยการนำเสนอในรูปแบบแผนที่ที่เข้าใจง่าย
+              เข้าถึงเอกสารสำคัญได้อย่างง่ายดาย ด้วยการนำเสนอในรูปแบบแผนที่เข้าใจง่าย
             </p>
             <div className="flex flex-wrap gap-4">
               <Link 

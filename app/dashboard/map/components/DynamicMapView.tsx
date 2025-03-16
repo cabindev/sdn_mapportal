@@ -22,7 +22,7 @@ const RecentDocumentsSidebar = dynamic(
   () => import("./RecentDocumentsSidebar"),
   { 
     ssr: false, 
-    loading: () => <div className="absolute top-4 right-4 bg-white/50 rounded-md p-4 shadow-sm animate-pulse w-64 h-80"></div> 
+    loading: () => <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md rounded-lg p-4 shadow-md w-64 h-80"></div> 
   }
 );
 
@@ -64,6 +64,7 @@ const addCustomStyles = () => {
    .leaflet-container {
      width: 100%;
      height: 100%;
+     font-family: 'Prompt', sans-serif;
    }
    
    /* ปรับตำแหน่ง controls ของ leaflet */
@@ -78,6 +79,28 @@ const addCustomStyles = () => {
    .leaflet-control-zoom {
      margin-top: 10px !important;
      margin-right: 10px !important;
+     border-radius: 8px !important;
+     box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+     overflow: hidden;
+   }
+   
+   .leaflet-control-zoom a {
+     background-color: rgba(255, 255, 255, 0.9) !important;
+     color: #333 !important;
+     border-color: #eee !important;
+     transition: all 0.2s ease;
+   }
+   
+   .leaflet-control-zoom a:hover {
+     background-color: #f97316 !important;
+     color: white !important;
+   }
+   
+   .leaflet-popup-content-wrapper {
+     border-radius: 8px;
+     box-shadow: 0 3px 14px rgba(0,0,0,0.15);
+     background-color: rgba(255, 255, 255, 0.95);
+     backdrop-filter: blur(10px);
    }
  `;
   document.head.appendChild(style);
@@ -88,8 +111,8 @@ const addCustomStyles = () => {
 
 // สไตล์ของขอบเขตประเทศไทย
 const THAILAND_STYLE = {
-  weight: 0.1,
-  opacity: 0.1,
+  weight: 1,
+  opacity: 0.2,
   color: '#FF9500',
   fillOpacity: 0.05,
   fillColor: '#FF9500',
@@ -115,7 +138,7 @@ export default function DynamicMapView({
   setSelectedCategories: externalSetSelectedCategories,
   simplified = false,
   fullscreen = false,
-  showRecentDocuments = false, // ค่าเริ่มต้นเป็น false
+  showRecentDocuments = true, // เปลี่ยนค่าเริ่มต้นเป็น true
   recentDocuments: externalRecentDocuments,
   onHoverDocument: externalOnHoverDocument,
 }: DynamicMapViewProps) {
@@ -274,7 +297,7 @@ export default function DynamicMapView({
 
       {/* แสดง DocumentForm เฉพาะเมื่อมีการเลือกตำแหน่งและไม่ใช่โหมด simplified */}
       {!simplified && selectedLocation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000]">
           <DocumentForm
             categories={categories}
             location={selectedLocation as LocationData}
@@ -310,7 +333,7 @@ export default function DynamicMapView({
       )}
 
       {!simplified && (
-        <div className="absolute top-4 left-4 z-[900]">
+        <div className="absolute top-4 left-4 z-[900] w-full max-w-md px-4">
           <TambonSearch
             onSelectLocation={(locationData) => {
               setSelectedLocation(locationData);

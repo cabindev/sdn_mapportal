@@ -38,6 +38,11 @@ const Navbar = () => {
     setIsClient(true);
   }, []);
 
+  // รีเซ็ตเมนูเมื่อสถานะการเข้าสู่ระบบเปลี่ยนแปลง
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [status]);
+
   const handleSignOut = async () => {
     try {
       await signOut({ redirect: false });
@@ -191,7 +196,7 @@ const Navbar = () => {
                   <IoIosArrowDown className="w-4 h-4 text-gray-600 group-hover:text-orange-600 transition-colors" />
                 </button>
 
-                {/* User menu dropdown */}
+                {/* User menu dropdown - เมนูจะแสดงเฉพาะเมื่อคลิกเท่านั้น (isMenuOpen === true) */}
                 {isMenuOpen && (
                   <div className="absolute right-0 mt-2 w-64 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl py-2 border border-gray-100 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
@@ -212,8 +217,6 @@ const Navbar = () => {
                         <FiUser className="mr-3 h-4 w-4" />
                         Profile
                       </Link>
-                      
-
                     </div>
                     
                     <div className="py-1 border-t border-gray-100">

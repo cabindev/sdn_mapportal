@@ -37,42 +37,42 @@ export default function MapPage() {
   }, [])
 
 
-      useEffect(() => {
-        const loadData = async () => {
-          try {
-            const [catsData, docsData] = await Promise.all([
-              getCategories(),
-              getDocuments()
-            ])
-            
-            setCategories(catsData)
-            
-            const sortedDocs = [...docsData].sort(
-              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            )
-            
-            const docsWithLatestFlag = sortedDocs.map((doc, index) => ({
-              ...doc,
-              isLatest: index < 5,
-              year: (doc as any).year ?? (new Date().getFullYear() + 543) // เพิ่มบรรทัดนี้
-            }))
-            
-            setDocuments(docsWithLatestFlag)
-            setRecentDocuments(sortedDocs.slice(0, 10).map(doc => ({
-              ...doc,
-              year: (doc as any).year ?? (new Date().getFullYear() + 543) // อย่าลืมเพิ่มตรงนี้ด้วย
-            })))
-            setSelectedCategories(catsData.map(c => c.id))
-          } catch (error) {
-            console.error('Error loading data:', error)
-            setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง')
-          } finally {
-            setIsLoading(false)
-          }
-        }
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [catsData, docsData] = await Promise.all([
+          getCategories(),
+          getDocuments()
+        ])
+        
+        setCategories(catsData)
+        
+        const sortedDocs = [...docsData].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+        
+        const docsWithLatestFlag = sortedDocs.map((doc, index) => ({
+          ...doc,
+          isLatest: index < 5,
+          year: (doc as any).year ?? (new Date().getFullYear() + 543)
+        }))
+        
+        setDocuments(docsWithLatestFlag)
+        setRecentDocuments(sortedDocs.slice(0, 10).map(doc => ({
+          ...doc,
+          year: (doc as any).year ?? (new Date().getFullYear() + 543)
+        })))
+        setSelectedCategories(catsData.map(c => c.id))
+      } catch (error) {
+        console.error('Error loading data:', error)
+        setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง')
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-        loadData()
-      }, [])
+    loadData()
+  }, [])
 
   // ฟังก์ชันสลับเลือกหมวดหมู่ทั้งหมด
   const toggleAllCategories = useCallback(() => {
@@ -97,7 +97,7 @@ export default function MapPage() {
   // แสดง loading เฉพาะเมื่อกำลังโหลดข้อมูลเท่านั้น
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center">
+      <div className="h-[calc(100vh-64px)] w-full flex items-center justify-center">
         <CircleLoader message="กำลังโหลดข้อมูล..." variant="spinner" />
       </div>
     )
@@ -106,7 +106,7 @@ export default function MapPage() {
   // แสดงข้อผิดพลาด
   if (error) {
     return (
-      <div className="h-screen w-full flex items-center justify-center">
+      <div className="h-[calc(100vh-64px)] w-full flex items-center justify-center">
         <div className="text-center p-6 bg-white rounded-lg shadow-sm border border-slate-200 max-w-md">
           <div className="text-red-500 mb-4">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,8 +128,7 @@ export default function MapPage() {
 
   // แสดงหน้าปกติ
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
-
+    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
       {/* โครงสร้างหลัก - แผนที่ขยายเต็มพื้นที่ */}
       <div className="flex-1 overflow-hidden relative">
         {isMapLoading && (
@@ -144,16 +143,16 @@ export default function MapPage() {
             documents={documents.map((doc) => ({
               ...doc,
               isLatest: doc.isLatest || doc.id === highlightedDocId,
-              year: doc.year ?? (new Date().getFullYear() + 543) // เพิ่มบรรทัดนี้เพื่อรับประกันว่ามีค่า year
+              year: doc.year ?? (new Date().getFullYear() + 543)
             }))}
             selectedCategories={selectedCategories}
             setSelectedCategories={setSelectedCategories}
             recentDocuments={recentDocuments.map(doc => ({
               ...doc,
-              year: doc.year ?? (new Date().getFullYear() + 543) // เพิ่มตรงนี้ด้วย
+              year: doc.year ?? (new Date().getFullYear() + 543)
             }))}
             onHoverDocument={setHighlightedDocId}
-            showRecentDocuments={false}
+            showRecentDocuments={true}
           />
         )}
       </div>
