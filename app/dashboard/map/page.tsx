@@ -36,39 +36,43 @@ export default function MapPage() {
     return () => clearTimeout(timer)
   }, [])
 
-  // โหลดข้อมูล
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [catsData, docsData] = await Promise.all([
-          getCategories(),
-          getDocuments()
-        ])
-        
-        setCategories(catsData)
-        
-        const sortedDocs = [...docsData].sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )
-        
-        const docsWithLatestFlag = sortedDocs.map((doc, index) => ({
-          ...doc,
-          isLatest: index < 5,
-        }))
-        
-        setDocuments(docsWithLatestFlag)
-        setRecentDocuments(sortedDocs.slice(0, 10))
-        setSelectedCategories(catsData.map(c => c.id))
-      } catch (error) {
-        console.error('Error loading data:', error)
-        setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง')
-      } finally {
-        setIsLoading(false)
-      }
-    }
 
-    loadData()
-  }, [])
+      useEffect(() => {
+        const loadData = async () => {
+          try {
+            const [catsData, docsData] = await Promise.all([
+              getCategories(),
+              getDocuments()
+            ])
+            
+            setCategories(catsData)
+            
+            const sortedDocs = [...docsData].sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            )
+            
+            const docsWithLatestFlag = sortedDocs.map((doc, index) => ({
+              ...doc,
+              isLatest: index < 5,
+              year: (doc as any).year ?? (new Date().getFullYear() + 543) // เพิ่มบรรทัดนี้
+            }))
+            
+            setDocuments(docsWithLatestFlag)
+            setRecentDocuments(sortedDocs.slice(0, 10).map(doc => ({
+              ...doc,
+              year: (doc as any).year ?? (new Date().getFullYear() + 543) // อย่าลืมเพิ่มตรงนี้ด้วย
+            })))
+            setSelectedCategories(catsData.map(c => c.id))
+          } catch (error) {
+            console.error('Error loading data:', error)
+            setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง')
+          } finally {
+            setIsLoading(false)
+          }
+        }
+
+        loadData()
+      }, [])
 
   // ฟังก์ชันสลับเลือกหมวดหมู่ทั้งหมด
   const toggleAllCategories = useCallback(() => {
@@ -140,10 +144,14 @@ export default function MapPage() {
             documents={documents.map((doc) => ({
               ...doc,
               isLatest: doc.isLatest || doc.id === highlightedDocId,
+              year: doc.year ?? (new Date().getFullYear() + 543) // เพิ่มบรรทัดนี้เพื่อรับประกันว่ามีค่า year
             }))}
             selectedCategories={selectedCategories}
             setSelectedCategories={setSelectedCategories}
-            recentDocuments={recentDocuments}
+            recentDocuments={recentDocuments.map(doc => ({
+              ...doc,
+              year: doc.year ?? (new Date().getFullYear() + 543) // เพิ่มตรงนี้ด้วย
+            }))}
             onHoverDocument={setHighlightedDocId}
             showRecentDocuments={false}
           />
