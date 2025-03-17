@@ -1,530 +1,286 @@
 // app/dashboard/profile/page.tsx
 'use client'
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { UserIcon, DocumentTextIcon, ShieldCheckIcon, CalendarIcon } from "@heroicons/react/24/outline";
+import { UserIcon, DocumentTextIcon, ShieldCheckIcon, CalendarIcon, ArrowRightIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
-import NextImage from "next/image"; // เปลี่ยนชื่อเพื่อหลีกเลี่ยงความสับสน
 import Link from "next/link";
 import CircleLoader from "../map/components/CircleLoader";
 
+// เพิ่ม action สำหรับดึงข้อมูลเอกสารของผู้ใช้
+import { getUserDocuments } from "@/app/lib/actions/user/get-documents";
+
 export default function ProfilePage() {
- const { data: session, update } = useSession();
- const [user, setUser] = useState<any>(null);
- const [loading, setLoading] = useState(true);
- const [saving, setSaving] = useState(false);
- const [success, setSuccess] = useState(false);
- const [formData, setFormData] = useState({
-   firstName: "",
-   lastName: "",
-   image: null as File | null
- });
- const [imagePreview, setImagePreview] = useState<string | null>(null);
- const [compressing, setCompressing] = useState(false);
- const [error, setError] = useState<string | null>(null);
+  const { data: session } = useSession();
+  const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState({
+    documents: 0,
+    published: 0,
+    drafts: 0,
+    views: 0,
+    downloads: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
- useEffect(() => {
-   if (session?.user?.id) {
-     fetch(`/api/auth/signup/${session.user.id}`)
-       .then(async res => {
-         if (!res.ok) {
-           const errorText = await res.text();
-           console.error('API Error:', res.status, errorText);
-           throw new Error(`API error: ${res.status}`);
-         }
-         return res.json();
-       })
-       .then(data => {
-         if (data) {
-           setUser(data);
-           setFormData({
-             firstName: data.firstName || "",
-             lastName: data.lastName || "",
-             image: null
-           });
-           if (data.image) {
-             setImagePreview(data.image);
-           }
-         }
-         setLoading(false);
-       })
-       .catch(err => {
-         console.error("Error fetching user data:", err);
-         setError("ไม่สามารถดึงข้อมูลผู้ใช้ได้ โปรดลองใหม่อีกครั้ง");
-         setLoading(false);
-       });
-   }
- }, [session]);
+  useEffect(() => {
+    async function fetchData() {
+      if (session?.user?.id) {
+        try {
+          // ดึงข้อมูลผู้ใช้
+          const userRes = await fetch(`/api/auth/signup/${session.user.id}`);
+          if (!userRes.ok) {
+            const errorText = await userRes.text();
+            console.error('API Error:', userRes.status, errorText);
+            throw new Error(`API error: ${userRes.status}`);
+          }
+          const userData = await userRes.json();
+          setUser(userData);
 
- const compressImage = async (file: File): Promise<File> => {
-   setCompressing(true);
-   return new Promise((resolve, reject) => {
-     const reader = new FileReader();
-     
-     reader.onload = (event) => {
-       // สร้าง HTMLImageElement แทนการใช้ new Image()
-       const img = document.createElement('img');
-       img.src = event.target?.result as string;
-       
-       img.onload = () => {
-         const canvas = document.createElement('canvas');
-         let width = img.width;
-         let height = img.height;
-         
-         // ปรับขนาดภาพถ้าจำเป็น
-         const MAX_WIDTH = 1200;
-         const MAX_HEIGHT = 1200;
-         
-         if (width > height) {
-           if (width > MAX_WIDTH) {
-             height = Math.round(height * MAX_WIDTH / width);
-             width = MAX_WIDTH;
-           }
-         } else {
-           if (height > MAX_HEIGHT) {
-             width = Math.round(width * MAX_HEIGHT / height);
-             height = MAX_HEIGHT;
-           }
-         }
-         
-         canvas.width = width;
-         canvas.height = height;
-         
-         const ctx = canvas.getContext('2d');
-         if (!ctx) {
-           setCompressing(false);
-           reject(new Error('ไม่สามารถสร้าง canvas context ได้'));
-           return;
-         }
-         
-         ctx.drawImage(img, 0, 0, width, height);
-         
-         // ลดคุณภาพทีละนิดจนกว่าจะได้ขนาดที่ต้องการ
-         let quality = 0.9;
-         let dataUrl;
-         let blob;
-         let compressedFile;
-         const fileType = file.type || 'image/jpeg';
-         
-         // ฟังก์ชันเพื่อทดสอบขนาดไฟล์
-         const tryQuality = () => {
-           dataUrl = canvas.toDataURL(fileType, quality);
-           
-           // แปลง Data URL เป็น Blob
-           const byteString = atob(dataUrl.split(',')[1]);
-           const ab = new ArrayBuffer(byteString.length);
-           const ia = new Uint8Array(ab);
-           
-           for (let i = 0; i < byteString.length; i++) {
-             ia[i] = byteString.charCodeAt(i);
-           }
-           
-           blob = new Blob([ab], { type: fileType });
-           
-           // แปลง Blob เป็น File
-           compressedFile = new File([blob], file.name, {
-             type: fileType,
-             lastModified: Date.now()
-           });
-           
-           if (compressedFile.size > 500000 && quality > 0.1) {
-             // ลดคุณภาพและลองอีกครั้ง
-             quality -= 0.1;
-             setTimeout(tryQuality, 0);
-           } else {
-             setCompressing(false);
-             resolve(compressedFile);
-           }
-         };
-         
-         tryQuality();
-       };
-       
-       img.onerror = (imgError) => {
-         setCompressing(false);
-         reject(imgError);
-       };
-     };
-     
-     reader.onerror = (readerError) => {
-       setCompressing(false);
-       reject(readerError);
-     };
-     
-     reader.readAsDataURL(file);
-   });
- };
+          // ดึงข้อมูลเอกสารของผู้ใช้
+          const documents = await getUserDocuments(Number(session.user.id));
 
- const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-   const file = e.target.files?.[0];
-   if (file) {
-     // ตรวจสอบประเภทไฟล์
-     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-     if (!validTypes.includes(file.type)) {
-       setError('กรุณาอัพโหลดไฟล์รูปภาพ (JPG, PNG, WEBP)');
-       return;
-     }
+          // คำนวณสถิติจากข้อมูลเอกสาร
+          const publishedDocs = documents.filter(doc => doc.isPublished);
+          const draftDocs = documents.filter(doc => !doc.isPublished);
+          const totalViews = documents.reduce((sum, doc) => sum + doc.viewCount, 0);
+          const totalDownloads = documents.reduce((sum, doc) => sum + doc.downloadCount, 0);
 
-     // แสดงตัวอย่างรูปภาพทันทีก่อนการบีบอัด
-     const tempReader = new FileReader();
-     tempReader.onloadend = () => {
-       setImagePreview(tempReader.result as string);
-     };
-     tempReader.readAsDataURL(file);
+          setStats({
+            documents: documents.length,
+            published: publishedDocs.length,
+            drafts: draftDocs.length,
+            views: totalViews,
+            downloads: totalDownloads
+          });
 
-     try {
-       // บีบอัดรูปภาพ
-       const compressedFile = await compressImage(file);
-       
-       // อัปเดตฟอร์มด้วยไฟล์ที่ถูกบีบอัดแล้ว
-       setFormData({ ...formData, image: compressedFile });
-       
-       // แสดงตัวอย่างรูปภาพที่บีบอัดแล้ว
-       const reader = new FileReader();
-       reader.onloadend = () => {
-         setImagePreview(reader.result as string);
-       };
-       reader.readAsDataURL(compressedFile);
-       
-       // ล้างข้อความแจ้งเตือนถ้ามี
-       setError(null);
-     } catch (err) {
-       console.error('ไม่สามารถบีบอัดรูปภาพได้:', err);
-       setError('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ');
-     }
-   }
- };
+          setLoading(false);
+        } catch (err) {
+          console.error("Error fetching data:", err);
+          setError("ไม่สามารถดึงข้อมูลได้ โปรดลองใหม่อีกครั้ง");
+          setLoading(false);
+        }
+      }
+    }
 
- const handleSubmit = async (e: FormEvent) => {
-   e.preventDefault();
-   setSaving(true);
-   setSuccess(false);
-   setError(null);
+    fetchData();
+  }, [session]);
 
-   if (!session?.user?.id) {
-     setError("ไม่พบข้อมูลผู้ใช้");
-     setSaving(false);
-     return;
-   }
-   
-   try {
-     const data = new FormData();
-     data.append('firstName', formData.firstName);
-     data.append('lastName', formData.lastName);
-     if (formData.image) {
-       data.append('image', formData.image);
-     }
+  if (loading) {
+    return <CircleLoader />;
+  }
 
-     const response = await fetch(`/api/auth/signup/${session.user.id}`, {
-       method: 'PUT',
-       body: data,
-     });
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('th-TH', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
+  };
 
-     if (!response.ok) {
-       const errorData = await response.text();
-       console.error('Update error:', response.status, errorData);
-       throw new Error('ไม่สามารถอัปเดตข้อมูลได้');
-     }
+  return (
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white p-8 rounded-t-xl shadow-lg">
+        <h1 className="text-3xl font-bold tracking-tight">โปรไฟล์ของฉัน</h1>
+        <p className="mt-2 text-orange-50 text-lg font-light">
+          ยินดีต้อนรับ, <span className="font-semibold">{user?.firstName || "ผู้ใช้"}</span>! ศูนย์กลางจัดการเอกสารของคุณ
+        </p>
+      </div>
 
-     const updatedUser = await response.json();
-     setUser(updatedUser);
-     
-     // อัปเดต session
-     await update({
-       ...session,
-       user: {
-         ...session.user,
-         name: `${updatedUser.firstName} ${updatedUser.lastName}`,
-         image: updatedUser.image,
-       },
-     });
+      <div className="bg-white rounded-b-xl shadow-lg overflow-hidden">
+        {/* โปรไฟล์การ์ด */}
+        <div className="relative">
+          {/* พื้นหลังแบบโค้ง */}
+          <div className="absolute h-36 inset-x-0 top-0 bg-gradient-to-b from-orange-100 via-orange-50 to-transparent rounded-b-[50%] opacity-70"></div>
+          
+          <div className="relative px-8 pt-20 pb-8">
+            <div className="flex flex-col items-center">
+              {/* รูปโปรไฟล์ */}
+              <div className="relative mb-5">
+                <div className="h-36 w-36 rounded-full overflow-hidden bg-white border-4 border-white ring-2 ring-orange-100 shadow-xl">
+                  {user?.image ? (
+                    <img
+                      src={user.image}
+                      alt={`${user?.firstName || ""} ${user?.lastName || ""}`}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `<div class="h-full w-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-16 w-16 text-gray-400">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                            </svg>
+                          </div>`;
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                      <UserIcon className="h-16 w-16 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                {user && user.role === "ADMIN" && (
+                  <div className="absolute -bottom-1 -right-1 bg-gradient-to-br from-orange-500 to-orange-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md border border-white">
+                    แอดมิน
+                  </div>
+                )}
+              </div>
+              
+              {/* ข้อมูลผู้ใช้ */}
+              <h2 className="text-2xl font-bold text-gray-800 tracking-tight">
+                {user?.firstName || ""} {user?.lastName || ""}
+              </h2>
+              <p className="text-gray-500 mt-1">{user?.email || ""}</p>
+              
+              {/* แท็กข้อมูล */}
+              <div className="mt-4 flex flex-wrap gap-3 justify-center">
+                <div className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-orange-100 text-orange-800 border border-orange-200">
+                  <ShieldCheckIcon className="h-4 w-4 mr-1.5" />
+                  {user?.role === "ADMIN" ? "ผู้ดูแลระบบ" : "สมาชิก"}
+                </div>
+                <div className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                  <CalendarIcon className="h-4 w-4 mr-1.5" />
+                  สมาชิกตั้งแต่ {user?.createdAt ? formatDate(user.createdAt) : ""}
+                </div>
+              </div>
 
-     setSuccess(true);
-     // ให้ข้อความความสำเร็จหายไปหลังจาก 3 วินาที
-     setTimeout(() => setSuccess(false), 3000);
-   } catch (err) {
-     console.error('Error updating profile:', err);
-     setError('ไม่สามารถอัปเดตข้อมูลได้ โปรดลองอีกครั้ง');
-   } finally {
-     setSaving(false);
-   }
- };
+              {/* ปุ่มแก้ไขโปรไฟล์ */}
+              <div className="mt-6">
+                <Link
+                  href="/dashboard/setting/profile"
+                  className="inline-flex items-center px-5 py-2.5 border border-orange-300 rounded-full shadow-sm text-sm font-medium text-orange-600 bg-white hover:bg-orange-50 hover:border-orange-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                >
+                  แก้ไขโปรไฟล์
+                  <ArrowRightIcon className="ml-2 h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
 
- if (loading) {
-   return (
-    <CircleLoader/>
-   );
- }
+        {/* สถิติแบบการ์ด */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 p-6 mx-4 bg-gray-50 rounded-xl mb-6">
+          <div className="flex flex-col items-center p-5 bg-white rounded-lg shadow-sm border border-blue-100 hover:shadow-md transition-shadow duration-200">
+            <div className="text-blue-600 font-medium text-sm mb-1">เอกสารทั้งหมด</div>
+            <div className="text-blue-900 text-3xl font-bold">{stats.documents}</div>
+            <div className="mt-3 p-2 bg-blue-50 rounded-full">
+              <DocumentTextIcon className="h-5 w-5 text-blue-500" />
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center p-5 bg-white rounded-lg shadow-sm border border-green-100 hover:shadow-md transition-shadow duration-200">
+            <div className="text-green-600 font-medium text-sm mb-1">เอกสารเผยแพร่แล้ว</div>
+            <div className="text-green-900 text-3xl font-bold">{stats.published}</div>
+            <div className="mt-3 p-2 bg-green-50 rounded-full">
+              <CheckCircleIcon className="h-5 w-5 text-green-500" />
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center p-5 bg-white rounded-lg shadow-sm border border-amber-100 hover:shadow-md transition-shadow duration-200">
+            <div className="text-amber-600 font-medium text-sm mb-1">เอกสารไม่เผยแพร่</div>
+            <div className="text-amber-900 text-3xl font-bold">{stats.drafts}</div>
+            <div className="mt-3 p-2 bg-amber-50 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5 text-amber-500">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center p-5 bg-white rounded-lg shadow-sm border border-purple-100 hover:shadow-md transition-shadow duration-200">
+            <div className="text-purple-600 font-medium text-sm mb-1">จำนวนเข้าชม</div>
+            <div className="text-purple-900 text-3xl font-bold">{stats.views}</div>
+            <div className="mt-3 p-2 bg-purple-50 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5 text-purple-500">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center p-5 bg-white rounded-lg shadow-sm border border-cyan-100 hover:shadow-md transition-shadow duration-200">
+            <div className="text-cyan-600 font-medium text-sm mb-1">ดาวน์โหลด</div>
+            <div className="text-cyan-900 text-3xl font-bold">{stats.downloads}</div>
+            <div className="mt-3 p-2 bg-cyan-50 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5 text-cyan-500">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            </div>
+          </div>
+        </div>
 
- const formatDate = (dateString: string) => {
-   const date = new Date(dateString);
-   return new Intl.DateTimeFormat('th-TH', {
-     day: 'numeric',
-     month: 'long',
-     year: 'numeric',
-     hour: '2-digit',
-     minute: '2-digit'
-   }).format(date);
- };
+        {/* ทางลัด */}
+        <div className="p-8 bg-white">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 pl-2">เมนูลัด</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* สร้างเอกสารใหม่ */}
+            <Link href="/dashboard/documents/new" className="group block bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 shadow-sm border border-orange-200 transition-all duration-300 hover:shadow-md hover:translate-y-[-2px]">
+              <div className="flex items-center">
+                <div className="bg-orange-200 rounded-full p-3 mr-4 text-orange-700 transition-transform duration-300 group-hover:scale-110">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-orange-800 mb-1">สร้างเอกสารใหม่</h3>
+                  <p className="text-sm text-orange-600 line-clamp-2">เริ่มสร้างเอกสารใหม่เพื่อเผยแพร่แก่ผู้ใช้ทั่วไป</p>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <span className="text-xs text-orange-700 font-medium inline-flex items-center group-hover:translate-x-1 transition-transform duration-300">
+                  เริ่มสร้างเอกสาร
+                  <ChevronRightIcon className="ml-1 h-3 w-3" />
+                </span>
+              </div>
+            </Link>
 
- return (
-   <div className="max-w-6xl mx-auto p-6">
-     <div className="bg-gradient-to-r from-orange-600 to-orange-400 text-white p-6 rounded-t-lg">
-       <h1 className="text-2xl font-bold">ข้อมูลส่วนตัว</h1>
-       <p className="mt-1 text-orange-100">จัดการข้อมูลส่วนตัวและการตั้งค่าบัญชีของคุณ</p>
-     </div>
+            {/* แก้ไขโปรไฟล์ */}
+            <Link href="/dashboard/setting/profile" className="group block bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 shadow-sm border border-blue-200 transition-all duration-300 hover:shadow-md hover:translate-y-[-2px]">
+              <div className="flex items-center">
+                <div className="bg-blue-200 rounded-full p-3 mr-4 text-blue-700 transition-transform duration-300 group-hover:scale-110">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-blue-800 mb-1">จัดการโปรไฟล์</h3>
+                  <p className="text-sm text-blue-600 line-clamp-2">แก้ไขข้อมูลส่วนตัวและโปรไฟล์ของคุณ</p>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <span className="text-xs text-blue-700 font-medium inline-flex items-center group-hover:translate-x-1 transition-transform duration-300">
+                  แก้ไขโปรไฟล์
+                  <ChevronRightIcon className="ml-1 h-3 w-3" />
+                </span>
+              </div>
+            </Link>
 
-     <div className="bg-white rounded-b-lg shadow-md">
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-         {/* ข้อมูลส่วนตัวและการตั้งค่า */}
-         <div className="md:col-span-1 p-6 border-b md:border-b-0 md:border-r border-gray-200">
-           <div className="flex flex-col items-center text-center">
-             <div className="relative mb-4">
-               <div className="h-32 w-32 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-lg">
-                 {imagePreview ? (
-                   <img 
-                     src={imagePreview.startsWith('data:') ? imagePreview : imagePreview} 
-                     alt={`${user?.firstName || ''} ${user?.lastName || ''}`} 
-                     className="h-full w-full object-cover"
-                     onError={(e) => {
-                       // ถ้าโหลดรูปภาพไม่สำเร็จให้แสดงไอคอนแทน
-                       e.currentTarget.style.display = 'none';
-                       const parent = e.currentTarget.parentElement;
-                       if (parent) {
-                         parent.innerHTML = `<div class="h-full w-full flex items-center justify-center bg-gray-200">
-                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-16 w-16 text-gray-400">
-                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                           </svg>
-                         </div>`;
-                       }
-                     }}
-                   />
-                 ) : (
-                   <div className="h-full w-full flex items-center justify-center bg-gray-200">
-                     <UserIcon className="h-16 w-16 text-gray-400" />
-                   </div>
-                 )}
-               </div>
-               {user && user.role === 'ADMIN' && (
-                 <div className="absolute bottom-0 right-0 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                   แอดมิน
-                 </div>
-               )}
-             </div>
-             <h2 className="text-xl font-bold">{user?.firstName || ''} {user?.lastName || ''}</h2>
-             <p className="text-gray-600 mt-1">{user?.email || ''}</p>
-             
-             <div className="w-full mt-6 space-y-3">
-               <div className="flex items-center text-gray-700">
-                 <UserIcon className="h-5 w-5 mr-2 text-gray-500" />
-                 <span className="text-sm">ID: {user?.id || ''}</span>
-               </div>
-               <div className="flex items-center text-gray-700">
-                 <ShieldCheckIcon className="h-5 w-5 mr-2 text-gray-500" />
-                 <span className="text-sm">สิทธิ์: {user?.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : 'สมาชิก'}</span>
-               </div>
-               <div className="flex items-center text-gray-700">
-                 <CalendarIcon className="h-5 w-5 mr-2 text-gray-500" />
-                 <span className="text-sm">สมัครเมื่อ: {user?.createdAt ? formatDate(user.createdAt) : ''}</span>
-               </div>
-             </div>
-
-             <div className="w-full mt-6 space-y-2">
-               <div className="bg-gray-50 p-4 rounded-lg">
-                 <h3 className="font-medium text-gray-700">การยืนยันตัวตน</h3>
-                 <div className="mt-2 flex items-center">
-                   <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
-                   <span className="text-sm text-gray-600">อีเมล: {user?.emailVerified ? 'ยืนยันแล้ว' : 'ยังไม่ยืนยัน'}</span>
-                 </div>
-               </div>
-               
-               <div className="bg-gray-50 p-4 rounded-lg">
-                 <h3 className="font-medium text-gray-700">การรักษาความปลอดภัย</h3>
-                 <div className="mt-2">
-                   <Link href="/auth/reset-password" className="text-sm text-orange-600 hover:text-orange-500">
-                     เปลี่ยนรหัสผ่าน
-                   </Link>
-                 </div>
-               </div>
-             </div>
-           </div>
-         </div>
-
-         {/* แก้ไขข้อมูลส่วนตัว */}
-         <div className="md:col-span-2 p-6">
-           <h2 className="text-xl font-bold mb-4">แก้ไขข้อมูลส่วนตัว</h2>
-           
-           <form onSubmit={handleSubmit} className="space-y-6">
-             {error && (
-               <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-                 <div className="flex">
-                   <div className="flex-shrink-0">
-                     <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                     </svg>
-                   </div>
-                   <div className="ml-3">
-                     <p className="text-sm text-red-700">{error}</p>
-                   </div>
-                 </div>
-               </div>
-             )}
-
-             {success && (
-               <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
-                 <div className="flex">
-                   <div className="flex-shrink-0">
-                     <svg className="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                     </svg>
-                   </div>
-                   <div className="ml-3">
-                     <p className="text-sm text-green-700">บันทึกข้อมูลสำเร็จ</p>
-                   </div>
-                 </div>
-               </div>
-             )}
-
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div>
-                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">ชื่อ</label>
-                 <input
-                   type="text"
-                   id="firstName"
-                   name="firstName"
-                   value={formData.firstName}
-                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                   required
-                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-                 />
-               </div>
-               
-               <div>
-                 <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">นามสกุล</label>
-                 <input
-                   type="text"
-                   id="lastName"
-                   name="lastName"
-                   value={formData.lastName}
-                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                   required
-                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-                 />
-               </div>
-             </div>
-
-             <div>
-               <label htmlFor="email" className="block text-sm font-medium text-gray-700">อีเมล</label>
-               <input
-                 type="email"
-                 id="email"
-                 name="email"
-                 value={user?.email || ''}
-                 disabled
-                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-50 text-gray-500"
-               />
-               <p className="mt-1 text-xs text-gray-500">ไม่สามารถเปลี่ยนแปลงอีเมลได้</p>
-             </div>
-
-             <div>
-               <label htmlFor="profile-image" className="block text-sm font-medium text-gray-700">รูปโปรไฟล์</label>
-               <div className="mt-2 flex items-center">
-                 <div className={`flex-shrink-0 h-16 w-16 rounded-full ${!imagePreview ? 'bg-gray-100 flex items-center justify-center' : ''} overflow-hidden mr-4`}>
-                   {imagePreview ? (
-                     <img 
-                       src={imagePreview.startsWith('data:') ? imagePreview : imagePreview} 
-                       alt="Preview" 
-                       className="h-full w-full object-cover" 
-                     />
-                   ) : (
-                     <UserIcon className="h-8 w-8 text-gray-300" />
-                   )}
-                 </div>
-                 <div className="flex-1">
-                   <input
-                     type="file"
-                     id="profile-image"
-                     name="image"
-                     accept="image/jpeg,image/png,image/webp"
-                     onChange={handleImageChange}
-                     disabled={compressing}
-                     className={`block w-full text-sm text-gray-500
-                       file:mr-4 file:py-2 file:px-4
-                       file:rounded-md file:border-0
-                       file:text-sm file:font-medium
-                       file:bg-orange-50 file:text-orange-700
-                       hover:file:bg-orange-100
-                       ${compressing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                   />
-                   {compressing ? (
-                     <p className="mt-1 text-xs text-orange-600 flex items-center">
-                       <svg className="animate-spin mr-2 h-3 w-3 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                       </svg>
-                       กำลังประมวลผลรูปภาพ...
-                     </p>
-                   ) : (
-                     <p className="mt-1 text-xs text-gray-500">อัพโหลดรูปภาพขนาดไม่เกิน 5MB (JPG, PNG หรือ WEBP)</p>
-                   )}
-                 </div>
-               </div>
-             </div>
-
-             <div className="flex items-center justify-end">
-               <button
-                 type="submit"
-                 disabled={saving || compressing}
-                 className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                   saving || compressing
-                     ? "bg-orange-400 cursor-not-allowed"
-                     : "bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-                 }`}
-               >
-                 {saving ? (
-                   <>
-                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                     </svg>
-                     กำลังบันทึก...
-                   </>
-                 ) : (
-                   "บันทึกข้อมูล"
-                 )}
-               </button>
-             </div>
-           </form>
-
-           <div className="mt-10">
-             <h3 className="text-lg font-medium text-gray-900 pb-2 border-b border-gray-200">กิจกรรมล่าสุด</h3>
-             
-             <div className="mt-4 space-y-4">
-               <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                 <div className="flex-shrink-0">
-                   <UserIcon className="h-5 w-5 text-gray-500" />
-                 </div>
-                 <div>
-                   <p className="text-sm text-gray-700">อัปเดตข้อมูลโปรไฟล์ล่าสุด</p>
-                   <p className="text-xs text-gray-500">{user?.updatedAt ? formatDate(user.updatedAt) : 'ไม่มีข้อมูล'}</p>
-                 </div>
-               </div>
-
-               <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                 <div className="flex-shrink-0">
-                   <DocumentTextIcon className="h-5 w-5 text-gray-500" />
-                 </div>
-                 <div>
-                   <p className="text-sm text-gray-700">เข้าชมเอกสารล่าสุด</p>
-                   <p className="text-xs text-gray-500 italic">ยังไม่มีข้อมูล</p>
-                 </div>
-               </div>
-             </div>
-           </div>
-         </div>
-       </div>
-     </div>
-   </div>
- );
+            {/* เมนูเอกสาร */}
+            <Link href="/dashboard/documents" className="group block bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 shadow-sm border border-green-200 transition-all duration-300 hover:shadow-md hover:translate-y-[-2px]">
+              <div className="flex items-center">
+                <div className="bg-green-200 rounded-full p-3 mr-4 text-green-700 transition-transform duration-300 group-hover:scale-110">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-green-800 mb-1">จัดการเอกสาร</h3>
+                  <p className="text-sm text-green-600 line-clamp-2">ดูและแก้ไขเอกสารทั้งหมดของคุณ</p>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <span className="text-xs text-green-700 font-medium inline-flex items-center group-hover:translate-x-1 transition-transform duration-300">
+                  จัดการเอกสาร
+                  <ChevronRightIcon className="ml-1 h-3 w-3" />
+                </span>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

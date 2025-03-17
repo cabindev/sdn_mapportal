@@ -10,6 +10,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// prisma/schema.prisma - model Document ที่ปรับปรุงแล้ว
+model Document {
+  id            Int         @id @default(autoincrement())
+  title         String
+  description   String      @db.Text
+  categoryId    Int
+  category      CategoryDoc @relation(fields: [categoryId], references: [id])
+  filePath      String
+  coverImage    String?
+  province      String
+  amphoe        String
+  district      String
+  latitude      Float
+  longitude     Float
+  year          Int?
+  viewCount     Int         @default(0)
+  downloadCount Int         @default(0)   
+  isPublished   Boolean     @default(true)
+  
+  // เพิ่มความสัมพันธ์กับ User
+  userId        Int
+  user          User        @relation(fields: [userId], references: [id])
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([categoryId])
+  @@index([year])
+  @@index([userId]) // เพิ่ม index สำหรับการค้นหาตาม user
+}
+
+// ปรับ model User เพื่อเพิ่มความสัมพันธ์กับ Document
 model User {
   id                  Int            @id @default(autoincrement())
   firstName           String
@@ -23,6 +55,10 @@ model User {
   resetTokenCreatedAt DateTime?
   resetTokenExpiresAt DateTime?
   lastPasswordReset   DateTime?
+  
+  // เพิ่มความสัมพันธ์กับ Document
+  documents           Document[]
+  
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
@@ -46,28 +82,4 @@ model CategoryDoc {
   documents   Document[]
 
   @@index([name])
-}
-// prisma/schema.prisma
-model Document {
-  id            Int         @id @default(autoincrement())
-  title         String
-  description   String      @db.Text
-  categoryId    Int
-  category      CategoryDoc @relation(fields: [categoryId], references: [id])
-  filePath      String
-  coverImage    String?
-  province      String
-  amphoe        String
-  district      String
-  latitude      Float
-  longitude     Float
-  year          Int?        // เพิ่มฟิลด์ปี พ.ศ.
-  viewCount     Int         @default(0)
-  downloadCount Int         @default(0)   
-  isPublished   Boolean     @default(true) 
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  @@index([categoryId])
-  @@index([year])           // เพิ่ม index สำหรับการค้นหาตามปี
 }

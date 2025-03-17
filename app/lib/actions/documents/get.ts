@@ -1,3 +1,4 @@
+//lib/actions/documents/get.ts
 'use server'
 
 import prisma from "../../db"

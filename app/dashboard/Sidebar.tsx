@@ -55,6 +55,12 @@ const settingsMenu = {
   icon: Cog6ToothIcon,
   subMenus: [
     {
+      name: 'แก้ไขโปรไฟล์',
+      href: '/dashboard/settings/profile',
+      icon: UserIcon,
+      requireAdmin: false
+    },
+    {
       name: 'จัดการผู้ใช้',
       href: '/dashboard/settings/users',
       icon: UsersIcon,

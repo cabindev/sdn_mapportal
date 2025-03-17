@@ -7,9 +7,24 @@ import prisma from '@/app/lib/db'
 import { uploadFile } from '@/app/lib/upload'
 import { mkdir } from 'fs/promises'
 import path from 'path'
+import { getServerSession } from "next-auth/next"
+import authOptions from '../../configs/auth/authOptions'
 
 export async function createDocument(formData: FormData) {
   try {
+    // ดึงข้อมูล session ด้วย getServerSession
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user) {
+      throw new Error("คุณต้องเข้าสู่ระบบก่อนทำรายการนี้");
+    }
+    
+    // ตรวจสอบว่ามี userId หรือไม่
+    const userId = session.user.id;
+    if (!userId) {
+      throw new Error("ไม่สามารถระบุตัวตนผู้ใช้ได้");
+    }
+
     // 1. ดึงข้อมูลจาก FormData
     const title = formData.get('title')?.toString()
     const description = formData.get('description')?.toString()
@@ -80,10 +95,11 @@ export async function createDocument(formData: FormData) {
         province,
         latitude: latitude ? parseFloat(latitude) : 0,
         longitude: longitude ? parseFloat(longitude) : 0,
-        year,  // เพิ่มค่าปี พ.ศ.
+        year,
         filePath,
         coverImage: coverImagePath,
-        isPublished
+        isPublished,
+        userId: userId
       }
     })
 

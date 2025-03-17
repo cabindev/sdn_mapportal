@@ -152,7 +152,7 @@ export default function MapPage() {
               year: doc.year ?? (new Date().getFullYear() + 543)
             }))}
             onHoverDocument={setHighlightedDocId}
-            showRecentDocuments={true}
+            showRecentDocuments={false}  //เปิดปิด sidebar บน Map true/false
           />
         )}
       </div>
