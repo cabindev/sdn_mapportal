@@ -84,24 +84,27 @@ export async function createDocument(formData: FormData) {
       throw new Error('เกิดข้อผิดพลาดในการอัพโหลดไฟล์')
     }
 
+    // แปลง userId เป็นตัวเลข
+    const userIdNumber = typeof userId === 'string' ? parseInt(userId) : userId;
+
     // 6. บันทึกข้อมูล
-    const newDocument = await prisma.document.create({
-      data: {
-        title,
-        description,
-        categoryId: parseInt(categoryId),
-        district,
-        amphoe,
-        province,
-        latitude: latitude ? parseFloat(latitude) : 0,
-        longitude: longitude ? parseFloat(longitude) : 0,
-        year,
-        filePath,
-        coverImage: coverImagePath,
-        isPublished,
-        userId: userId
-      }
-    })
+      const newDocument = await prisma.document.create({
+        data: {
+          title,
+          description,
+          categoryId: parseInt(categoryId),
+          district,
+          amphoe,
+          province,
+          latitude: latitude ? parseFloat(latitude) : 0,
+          longitude: longitude ? parseFloat(longitude) : 0,
+          year,
+          filePath,
+          coverImage: coverImagePath,
+          isPublished,
+          userId: typeof userId === 'string' ? parseInt(userId) : userId
+        }
+      })
 
     console.log('Document created successfully:', newDocument)
 

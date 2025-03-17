@@ -10,7 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// prisma/schema.prisma - model Document ที่ปรับปรุงแล้ว
 model Document {
   id            Int         @id @default(autoincrement())
   title         String
@@ -29,7 +28,6 @@ model Document {
   downloadCount Int         @default(0)   
   isPublished   Boolean     @default(true)
   
-  // เพิ่มความสัมพันธ์กับ User
   userId        Int
   user          User        @relation(fields: [userId], references: [id])
   
@@ -38,10 +36,20 @@ model Document {
 
   @@index([categoryId])
   @@index([year])
-  @@index([userId]) // เพิ่ม index สำหรับการค้นหาตาม user
+  @@index([userId])
 }
 
-// ปรับ model User เพื่อเพิ่มความสัมพันธ์กับ Document
+model CategoryDoc {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String?     
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  documents   Document[]
+
+  @@index([name])
+}
+
 model User {
   id                  Int            @id @default(autoincrement())
   firstName           String
@@ -56,7 +64,6 @@ model User {
   resetTokenExpiresAt DateTime?
   lastPasswordReset   DateTime?
   
-  // เพิ่มความสัมพันธ์กับ Document
   documents           Document[]
   
   createdAt           DateTime       @default(now())
@@ -69,17 +76,4 @@ model User {
 enum Role {
   MEMBER
   ADMIN
-}
-
-
-// prisma/schema.prisma
-model CategoryDoc {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique  // คงไว้เหมือนเดิม
-  description String?   
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  documents   Document[]
-
-  @@index([name])
 }
