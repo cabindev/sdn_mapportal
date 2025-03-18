@@ -109,14 +109,7 @@ const addCustomStyles = () => {
   };
 };
 
-// สไตล์ของขอบเขตประเทศไทย
-const THAILAND_STYLE = {
-  weight: 1,
-  opacity: 0.2,
-  color: '#FF9500',
-  fillOpacity: 0.05,
-  fillColor: '#FF9500',
-};
+
 
 // Component หลัก
 interface DynamicMapViewProps {
@@ -261,11 +254,7 @@ export default function DynamicMapView({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* แสดงขอบเขตประเทศไทย */}
-          <Rectangle 
-            bounds={THAILAND_BOUNDS.bounds}
-            pathOptions={THAILAND_STYLE}
-          />
+
 
           {/* แสดงจุดจังหวัดเมื่อซูมเข้า */}
           <ProvinceMarkers />

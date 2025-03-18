@@ -81,8 +81,8 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white p-8 rounded-t-xl shadow-lg">
+    <div className="max-w-6xl mx-auto p-2">
+      <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white p-2 rounded-t-xl shadow-lg">
         <h1 className="text-3xl font-bold tracking-tight">โปรไฟล์ของฉัน</h1>
         <p className="mt-2 text-orange-50 text-lg font-light">
           ยินดีต้อนรับ, <span className="font-semibold">{user?.firstName || "ผู้ใช้"}</span>! ศูนย์กลางจัดการเอกสารของคุณ
@@ -95,7 +95,7 @@ export default function ProfilePage() {
           {/* พื้นหลังแบบโค้ง */}
           <div className="absolute h-36 inset-x-0 top-0 bg-gradient-to-b from-orange-100 via-orange-50 to-transparent rounded-b-[50%] opacity-70"></div>
           
-          <div className="relative px-8 pt-20 pb-8">
+          <div className="relative px-2 pt-20 pb-8">
             <div className="flex flex-col items-center">
               {/* รูปโปรไฟล์ */}
               <div className="relative mb-5">
@@ -151,7 +151,7 @@ export default function ProfilePage() {
               {/* ปุ่มแก้ไขโปรไฟล์ */}
               <div className="mt-6">
                 <Link
-                  href="/dashboard/setting/profile"
+                  href="/dashboard/settings/profile"
                   className="inline-flex items-center px-5 py-2.5 border border-orange-300 rounded-full shadow-sm text-sm font-medium text-orange-600 bg-white hover:bg-orange-50 hover:border-orange-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                 >
                   แก้ไขโปรไฟล์

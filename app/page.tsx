@@ -29,38 +29,18 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen">
+
       {/* Hero Section + Map แบบรวมกัน */}
-      <div className="relative min-h-screen bg-gradient-to-r from-orange-600 to-orange-400 pt-20 pb-24">
+      <div className="relative min-h-screen  pt-4 ">
         <div className="absolute inset-0 opacity-10">
           <div className="w-full h-full bg-[url('/images/map-pattern.jpeg')] bg-repeat bg-center"></div>
         </div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="text-white mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold">ระบบแผนที่เอกสาร SDN</h1>
-            <p className="text-lg md:text-xl opacity-90 mt-2 mb-6">
-              เข้าถึงเอกสารสำคัญได้อย่างง่ายดาย ด้วยการนำเสนอในรูปแบบแผนที่เข้าใจง่าย
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link 
-                href="/dashboard/map" 
-                className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-lg font-medium hover:bg-gray-100 transition shadow-lg"
-              >
-                <FiMap className="w-5 h-5" />
-                <span>จัดการเอกสาร</span>
-              </Link>
-              <Link 
-                href="/dashboard/documents" 
-                className="flex items-center gap-2 px-6 py-3 bg-transparent border-2 border-white text-white rounded-lg font-medium hover:bg-white/10 transition"
-              >
-                <FiFileText className="w-5 h-5" />
-                <span>ดูเอกสารทั้งหมด</span>
-              </Link>
-            </div>
-          </div>
+
           
           {/* แผนที่ขนาดใหญ่เต็มพื้นที่ */}
-          <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100">
+          <div className="bg-white rounded-xl shadow-2xl overflow-hidden  border px-8 border-gray-100">
             <MapFilterWrapper 
               categories={categories} 
               documents={documents}
