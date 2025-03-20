@@ -99,7 +99,6 @@ const addCustomStyles = () => {
   };
 };
 
-// Component หลัก
 interface DynamicMapViewProps {
   categories: CategoryDoc[];
   documents?: DocumentWithCategory[];
@@ -108,7 +107,10 @@ interface DynamicMapViewProps {
   simplified?: boolean;
   fullscreen?: boolean;
   onHoverDocument?: (documentId: number | null) => void;
-  children?: React.ReactNode; // เพิ่ม children เพื่อรองรับการใส่ components เข้ามาจากภายนอก
+  children?: React.ReactNode;
+  // เพิ่ม props ที่ขาดไป
+  showRecentDocuments?: boolean;
+  recentDocuments?: DocumentWithCategory[];
 }
 
 export default function DynamicMapView({
