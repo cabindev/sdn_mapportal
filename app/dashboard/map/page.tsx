@@ -9,7 +9,9 @@ import { getDocuments } from '@/app/lib/actions/documents/get'
 import dynamic from 'next/dynamic'
 import CircleLoader from './components/CircleLoader'
 import MapFooter from './components/MapFooter'
+import Link from 'next/link'
 
+// โหลด DynamicMapView แบบ dynamic เพื่อป้องกัน SSR ปัญหา
 const DynamicMapView = dynamic(
   () => import('./components/DynamicMapView'),
   { ssr: false }
@@ -19,27 +21,15 @@ export default function MapPage() {
   const [categories, setCategories] = useState<CategoryDoc[]>([])
   const [documents, setDocuments] = useState<DocumentWithCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isMapLoading, setIsMapLoading] = useState(true)
   const [selectedCategories, setSelectedCategories] = useState<number[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [isMounted, setIsMounted] = useState(false)
   const [highlightedDocId, setHighlightedDocId] = useState<number | null>(null)
-  const [recentDocuments, setRecentDocuments] = useState<DocumentWithCategory[]>([])
 
-  // Check if component is mounted
-  useEffect(() => {
-    setIsMounted(true)
-    const timer = setTimeout(() => {
-      setIsMapLoading(false)
-    }, 500)
-
-    return () => clearTimeout(timer)
-  }, [])
-
-
+  // โหลดข้อมูลเมื่อเริ่มต้น
   useEffect(() => {
     const loadData = async () => {
       try {
+        // โหลดข้อมูลหมวดหมู่และเอกสารพร้อมกัน
         const [catsData, docsData] = await Promise.all([
           getCategories(),
           getDocuments()
@@ -47,21 +37,21 @@ export default function MapPage() {
         
         setCategories(catsData)
         
+        // เรียงลำดับเอกสารตามวันที่สร้าง (ล่าสุดอยู่บนสุด)
         const sortedDocs = [...docsData].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )
         
-        const docsWithLatestFlag = sortedDocs.map((doc, index) => ({
+        // เพิ่ม flag และปีเริ่มต้นให้กับเอกสาร
+        const docsWithMetadata = sortedDocs.map((doc, index) => ({
           ...doc,
           isLatest: index < 5,
           year: (doc as any).year ?? (new Date().getFullYear() + 543)
         }))
         
-        setDocuments(docsWithLatestFlag)
-        setRecentDocuments(sortedDocs.slice(0, 10).map(doc => ({
-          ...doc,
-          year: (doc as any).year ?? (new Date().getFullYear() + 543)
-        })))
+        setDocuments(docsWithMetadata)
+        
+        // เริ่มต้นให้เลือกทุกหมวดหมู่
         setSelectedCategories(catsData.map(c => c.id))
       } catch (error) {
         console.error('Error loading data:', error)
@@ -83,7 +73,7 @@ export default function MapPage() {
     }
   }, [selectedCategories, categories])
 
-  // ฟังก์ชั่นสลับเลือกหมวดหมู่เดียว
+  // ฟังก์ชันสลับเลือกหมวดหมู่เดียว
   const toggleCategory = useCallback((categoryId: number) => {
     setSelectedCategories(prev => {
       if (prev.includes(categoryId)) {
@@ -94,10 +84,10 @@ export default function MapPage() {
     })
   }, [])
 
-  // แสดง loading เฉพาะเมื่อกำลังโหลดข้อมูลเท่านั้น
+  // แสดง loading
   if (isLoading) {
     return (
-      <div className="h-[calc(100vh-64px)] w-full flex items-center justify-center">
+      <div className="min-h-screen w-full flex items-center justify-center">
         <CircleLoader message="กำลังโหลดข้อมูล..." variant="spinner" />
       </div>
     )
@@ -106,7 +96,7 @@ export default function MapPage() {
   // แสดงข้อผิดพลาด
   if (error) {
     return (
-      <div className="h-[calc(100vh-64px)] w-full flex items-center justify-center">
+      <div className="min-h-screen w-full flex items-center justify-center">
         <div className="text-center p-6 bg-white rounded-lg shadow-sm border border-slate-200 max-w-md">
           <div className="text-red-500 mb-4">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,47 +116,36 @@ export default function MapPage() {
     )
   }
 
-  // แสดงหน้าปกติ
-  return (
-    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
-      {/* โครงสร้างหลัก - แผนที่ขยายเต็มพื้นที่ */}
-      <div className="flex-1 overflow-hidden relative">
-        {isMapLoading && (
-          <div className="absolute inset-0 bg-slate-50 flex items-center justify-center z-10">
-            <CircleLoader message="กำลังโหลดแผนที่..." variant="pulse" />
-          </div>
-        )}
-        
-        {isMounted && (
-          <DynamicMapView
-            categories={categories}
-            documents={documents.map((doc) => ({
-              ...doc,
-              isLatest: doc.isLatest || doc.id === highlightedDocId,
-              year: doc.year ?? (new Date().getFullYear() + 543)
-            }))}
-            selectedCategories={selectedCategories}
-            setSelectedCategories={setSelectedCategories}
-            recentDocuments={recentDocuments.map(doc => ({
-              ...doc,
-              year: doc.year ?? (new Date().getFullYear() + 543)
-            }))}
-            onHoverDocument={setHighlightedDocId}
-            showRecentDocuments={false}  //เปิดปิด sidebar บน Map true/false
-          />
-        )}
-      </div>
 
-      {/* ส่วนข้อมูลด้านล่าง */}
-      <MapFooter
-        categories={categories}
-        documents={documents}
-        selectedCategories={selectedCategories}
-        toggleCategory={toggleCategory}
-        toggleAllCategories={toggleAllCategories}
-        highlightedDocId={highlightedDocId}
-        setHighlightedDocId={setHighlightedDocId}
-      />
+  return (
+    <div className="flex flex-col h-[calc(100vh-3.5rem)] bg-gray-50">
+      {/* ส่วนแผนที่หลัก - ให้ใช้พื้นที่ส่วนใหญ่ */}
+      <div className="flex-1 relative" style={{ zIndex: 1 }}>
+        <DynamicMapView
+          categories={categories}
+          documents={documents.map((doc) => ({
+            ...doc,
+            isLatest: doc.isLatest || doc.id === highlightedDocId,
+            year: doc.year ?? (new Date().getFullYear() + 543)
+          }))}
+          selectedCategories={selectedCategories}
+          setSelectedCategories={setSelectedCategories}
+          onHoverDocument={setHighlightedDocId}
+        />
+      </div>
+      
+      {/* แถบข้อมูลด้านล่าง - ใช้ MapFooter */}
+      <div className="bg-white shadow-md border-t border-gray-200 z-10">
+        <MapFooter
+          categories={categories}
+          documents={documents}
+          selectedCategories={selectedCategories}
+          toggleCategory={toggleCategory}
+          toggleAllCategories={toggleAllCategories}
+          highlightedDocId={highlightedDocId}
+          setHighlightedDocId={setHighlightedDocId}
+        />
+      </div>
     </div>
   )
 }

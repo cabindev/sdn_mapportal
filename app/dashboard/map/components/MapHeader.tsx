@@ -19,7 +19,7 @@ export default function MapHeader({
   onAddNewDocument
 }: MapHeaderProps) {
   return (
-    <div className="border-b border-slate-200 px-6 py-3 flex-shrink-0">
+    <div className="border-b border-slate-200 px-6 py-3 ">
       <div className="container mx-auto flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center">
           <FiMap className="text-orange-500 mr-2 text-xl" />

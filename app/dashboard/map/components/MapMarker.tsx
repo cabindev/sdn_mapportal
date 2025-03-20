@@ -1,323 +1,531 @@
 // app/dashboard/map/components/MapMarker.tsx
 'use client'
 
-import { Marker, CircleMarker, useMap, useMapEvent } from 'react-leaflet'
+import { Marker, Popup, CircleMarker, useMap, useMapEvent } from 'react-leaflet'
 import { DocumentWithCategory } from '@/app/types/document'
 import { getCategoryColor } from '@/app/utils/colorGenerator'
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 
 interface MapMarkerProps {
- document: DocumentWithCategory & { isLatest?: boolean };
+  document: DocumentWithCategory & { isLatest?: boolean };
+  onHover?: (documentId: number | null) => void; // เพิ่ม prop สำหรับ hover event
 }
 
-interface DocumentPopupProps {
- document: DocumentWithCategory & { isLatest?: boolean; viewCount: number; downloadCount: number };
- onClose: () => void;
- onView: () => void;
- onDownload: () => void;
-}
+export default function MapMarker({ document: docData, onHover }: MapMarkerProps) {
+  // สร้าง colorScheme ครั้งเดียวตั้งแต่ต้น และใช้ categoryId เดียวกันให้ทั้งป๊อปอัพและมาร์กเกอร์
+  const colorScheme = getCategoryColor(docData.categoryId);
+  const [icon, setIcon] = useState<any>(null);
+  const [viewCount, setViewCount] = useState(docData.viewCount);
+  const [downloadCount, setDownloadCount] = useState(docData.downloadCount);
+  const [markerSize, setMarkerSize] = useState(28); // ขนาดเริ่มต้น
+  const [circleRadius, setCircleRadius] = useState(25); // รัศมีเริ่มต้น
+  const map = useMap();
+  
+  // ติดตามการเปลี่ยนแปลงระดับการซูม
+  useMapEvent('zoom', () => {
+    const zoomLevel = map.getZoom();
+    // ปรับขนาดตามระดับการซูม
+    const newSize = Math.max(16, Math.min(28, 8 + zoomLevel * 1.5));
+    const newRadius = Math.max(15, Math.min(25, 6 + zoomLevel * 1.4));
+    
+    setMarkerSize(newSize);
+    setCircleRadius(newRadius);
+  });
+  
+  // สร้าง icon สำหรับมาร์กเกอร์ (ไม่แสดงเลข ID)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    import('leaflet').then(L => {
+      const newIcon = L.default.divIcon({
+        html: `
+          <div style="position: relative;">
+            <div style="
+              width: ${markerSize}px;
+              height: ${markerSize}px;
+              background-color: ${colorScheme.primary}; /* ใช้สีจาก colorScheme.primary โดยตรง */
+              border-radius: 50%;
+              border: ${markerSize > 20 ? 3 : 2}px solid white;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            "></div>
+            ${docData.isLatest ? `
+              <div style="
+                position: absolute;
+                top: -5px;
+                left: -5px;
+                right: -5px;
+                bottom: -5px;
+                border-radius: 50%;
+                border: 2px solid ${colorScheme.primary};
+                opacity: 0.7;
+                animation: pulse 1.5s infinite;
+              "></div>
+            ` : ''}
+          </div>
+        `,
+        className: 'custom-marker',
+        iconSize: [markerSize, markerSize],
+        iconAnchor: [markerSize/2, markerSize/2],
+        popupAnchor: [0, -markerSize/2]
+      });
+      
+      // เพิ่ม animation สำหรับ pulse effect
+      const styleId = 'map-marker-animations';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.innerHTML = `
+          @keyframes pulse {
+            0% {
+              transform: scale(1);
+              opacity: 0.7;
+            }
+            50% {
+              transform: scale(1.3);
+              opacity: 0.5;
+            }
+            100% {
+              transform: scale(1);
+              opacity: 0.7;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      setIcon(newIcon);
+    });
+  }, [docData.isLatest, colorScheme.primary, markerSize]);
+  
+  // ฟังก์ชันเพิ่มจำนวนการดู
+  const handleViewDocument = async () => {
+    try {
+      // เรียกใช้ API สำหรับเพิ่มจำนวนการดู
+      const response = await fetch(`/api/documents/view/${docData.id}`, {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        setViewCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
+    }
+  };
+  
+  // ฟังก์ชันเพิ่มจำนวนการดาวน์โหลด
+  const handleDownload = async () => {
+    try {
+      // เรียกใช้ API สำหรับเพิ่มจำนวนการดาวน์โหลด
+      const response = await fetch(`/api/documents/download/${docData.id}`, {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        setDownloadCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error incrementing download count:', error);
+    }
+  };
+  
+  // ฟังก์ชันเปิดป๊อปอัพแบบ modal
+  const handleMarkerClick = () => {
+    // พิมพ์ค่าสีเพื่อตรวจสอบความถูกต้อง
+    console.log('Marker color:', colorScheme.primary);
+    
+    const backdrop = document.querySelector('.map-backdrop-overlay') as HTMLElement;
+    if (!backdrop) {
+      // สร้าง backdrop overlay ถ้ายังไม่มี
+      const backdropOverlay = document.createElement('div');
+      backdropOverlay.className = 'map-backdrop-overlay';
+      document.querySelector('.leaflet-container')?.appendChild(backdropOverlay);
+      
+      // เพิ่ม CSS
+      const style = document.createElement('style');
+      style.innerHTML = `
+        .map-backdrop-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+          z-index: 999;
+          display: none;
+        }
+        
+        .popup-container {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          max-width: 90vw;
+          width: 480px;
+          max-height: 90vh;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+          overflow: hidden;
+          z-index: 1000;
+          display: none;
+          animation: popup-fade-in 0.3s ease;
+        }
+        
+        @keyframes popup-fade-in {
+          from {
+            opacity: 0;
+            transform: translate(-50%, -48%);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+          }
+        }
+        
+        .popup-active {
+          display: block;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    if (backdrop) {
+      backdrop.style.display = 'block';
+    }
+    
+    // สร้าง popup container
+    const popupContainer = document.createElement('div');
+    popupContainer.className = 'popup-container popup-active';
+    
+    const coverImageUrl = docData.coverImage || '';
+    const primaryColor = colorScheme.primary; // ใช้สีเดียวกับมาร์กเกอร์
+    
+    // กำหนด styles ที่ใช้ในป๊อปอัพโดยตรง
+    const popupStyles = `
+      <style>
+        .popup-header {
+          position: relative;
+          height: 180px;
+          background-color: ${primaryColor}20;
+          overflow: hidden;
+        }
+        
+        .popup-category-badge {
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          background-color: ${primaryColor};
+          color: white;
+          padding: 4px 12px;
+          border-radius: 30px;
+          font-size: 13px;
+          font-weight: 500;
+          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .popup-close-btn {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background-color: rgba(0, 0, 0, 0.25);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 18px;
+          z-index: 10;
+          border: none;
+          outline: none;
+        }
+        
+        .popup-content {
+          padding: 20px;
+        }
+        
+        .popup-title {
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 12px;
+          color: #333;
+        }
+        
+        .popup-date {
+          display: flex;
+          align-items: center;
+          color: #666;
+          font-size: 13px;
+          margin-bottom: 15px;
+        }
+        
+        .popup-desc {
+          margin-bottom: 15px;
+          font-size: 13px;
+          color: #555;
+          line-height: 1.5;
+        }
+        
+        .popup-location {
+          background-color: ${primaryColor}10;
+          border-left: 3px solid ${primaryColor};
+          padding: 12px;
+          margin-bottom: 15px;
+          border-radius: 4px;
+        }
+        
+        .popup-location-title {
+          font-weight: 500;
+          color: ${primaryColor};
+          font-size: 13px;
+          margin-bottom: 4px;
+        }
+        
+        .popup-location-text {
+          color: #666;
+          font-size: 13px;
+        }
+        
+        .popup-stats {
+          display: flex;
+          font-size: 12px;
+          color: #777;
+          border-top: 1px solid #eee;
+          padding-top: 15px;
+        }
+        
+        .popup-stat {
+          display: flex;
+          align-items: center;
+          margin-right: 15px;
+        }
+        
+        .popup-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 15px;
+        }
+        
+    .popup-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    
+    .popup-btn-primary {
+      background-color: ${primaryColor};
+      color: #000000; /* เปลี่ยนจาก white เป็น black */
+      font-weight: bold; /* เพิ่มความหนาให้ตัวอักษร */
+    }
+    
+    .popup-btn-primary:hover {
+      background-color: ${primaryColor}DD;
+    }
+    
+    .popup-btn-secondary {
+      background-color: #f1f1f1;
+      color: #000000; /* ตัวอักษรสีดำชัดเจน */
+      font-weight: bold; /* เพิ่มความหนาให้ตัวอักษร */
+    }
+    
+    .popup-btn-secondary:hover {
+      background-color: #e5e5e5;
+    }
+      </style>
+    `;
+    
+    popupContainer.innerHTML = `
+      ${popupStyles}
+      <div class="popup-header">
+        ${coverImageUrl ? `
+          <img src="${coverImageUrl}" alt="${docData.title}" style="width: 100%; height: 100%; object-fit: cover;">
+        ` : `
+          <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+            <div style="
+              width: 100px;
+              height: 100px;
+              border-radius: 50%;
+              background-color: ${primaryColor};
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            ">
+              <div style="font-size: 20px; font-weight: bold;">เอกสาร</div>
+              <div style="font-size: 12px;">${docData.category?.name?.substring(0, 3) || ''}</div>
+            </div>
+          </div>
+        `}
+        <div class="popup-category-badge">${docData.category?.name || 'ไม่ระบุหมวดหมู่'}</div>
+        <button class="popup-close-btn">×</button>
+      </div>
+      <div class="popup-content">
+        <h3 class="popup-title">${docData.title}</h3>
+        
+        <div class="popup-date">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          ${new Date(docData.createdAt).toLocaleString('th-TH', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </div>
+        
+        ${docData.description ? `
+          <div class="popup-desc">
+            ${docData.description.length > 200 
+              ? `${docData.description.substring(0, 200)}...` 
+              : docData.description
+            }
+          </div>
+        ` : ''}
+        
+        <div class="popup-location">
+          <div class="popup-location-title">ตำแหน่งที่ตั้ง</div>
+          <div class="popup-location-text">
+            ${docData.district}, ${docData.amphoe}, ${docData.province}
+          </div>
+          <div class="popup-location-coordinates text-xs text-gray-500 mt-1">
+            พิกัด: ${docData.latitude.toFixed(6)}, ${docData.longitude.toFixed(6)}
+          </div>
+        </div>
 
-// DocumentPopup component เพื่อแสดงรายละเอียดเอกสาร
-function DocumentPopup({ document, onClose, onView, onDownload }: DocumentPopupProps) {
- const colorScheme = getCategoryColor(document.categoryId);
-
- return (
-   <>
-     <div 
-       className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[999]" 
-       onClick={onClose}
-     />
-     
-     <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] max-w-[90vw] max-h-[90vh] bg-white rounded-xl shadow-2xl z-[1000] overflow-hidden animate-fade-in">
-       <div className="relative h-[180px]" style={{ backgroundColor: `${colorScheme.primary}20` }}>
-         {document.coverImage ? (
-           <img 
-             src={document.coverImage} 
-             alt={document.title} 
-             className="w-full h-full object-cover"
-           />
-         ) : (
-           <div className="flex items-center justify-center w-full h-full">
-             <div 
-               className="w-[100px] h-[100px] rounded-full flex flex-col items-center justify-center text-white shadow-lg"
-               style={{ backgroundColor: colorScheme.primary }}
-             >
-               <div className="text-xl font-bold">เอกสาร</div>
-               <div className="text-xs">{document.category?.name?.substring(0, 3) || ''}</div>
-             </div>
-           </div>
-         )}
-         
-         <div 
-           className="absolute top-3 left-3 px-3 py-1 rounded-full text-white text-sm font-medium shadow-md"
-           style={{ backgroundColor: colorScheme.primary }}
-         >
-           {document.category?.name || 'ไม่ระบุหมวดหมู่'}
-         </div>
-         
-         <button 
-           className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black bg-opacity-25 text-white flex items-center justify-center text-lg"
-           onClick={onClose}
-         >
-           ×
-         </button>
-       </div>
-       
-       <div className="p-5">
-         <h3 className="text-lg font-semibold text-gray-800 mb-3">{document.title}</h3>
-         
-         <div className="flex items-center text-gray-600 text-sm mb-4">
-           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-             <circle cx="12" cy="12" r="10"></circle>
-             <polyline points="12 6 12 12 16 14"></polyline>
-           </svg>
-           {new Date(document.createdAt).toLocaleString('th-TH', {
-             day: 'numeric',
-             month: 'short',
-             year: 'numeric',
-             hour: '2-digit',
-             minute: '2-digit'
-           })}
-         </div>
-         
-         {document.description && (
-           <div className="text-sm text-gray-600 mb-4">
-             {document.description.length > 200 
-               ? `${document.description.substring(0, 200)}...` 
-               : document.description
-             }
-           </div>
-         )}
-         
-         <div className="rounded p-3 mb-4" style={{ 
-           backgroundColor: `${colorScheme.primary}10`,
-           borderLeft: `3px solid ${colorScheme.primary}` 
-         }}>
-           <div className="font-medium text-sm mb-1" style={{ color: colorScheme.primary }}>
-             ตำแหน่งที่ตั้ง
-           </div>
-           <div className="text-sm text-gray-600">
-             {document.district}, {document.amphoe}, {document.province}
-           </div>
-           <div className="text-xs text-gray-500 mt-1">
-             พิกัด: {document.latitude.toFixed(6)}, {document.longitude.toFixed(6)}
-           </div>
-         </div>
-         
-         <div className="flex text-xs text-gray-500 pt-3 border-t border-gray-200">
-           <div className="flex items-center mr-4">
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-               <circle cx="12" cy="12" r="3"></circle>
-             </svg>
-             จำนวนการดู: {document.viewCount}
-           </div>
-           <div className="flex items-center">
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-               <polyline points="7 10 12 15 17 10"></polyline>
-               <line x1="12" y1="15" x2="12" y2="3"></line>
-             </svg>
-             ดาวน์โหลด: {document.downloadCount}
-           </div>
-         </div>
-         
-         <div className="flex gap-2 mt-4">
-           <a 
-             href={document.filePath}
-             target="_blank"
-             rel="noopener noreferrer"
-             className="flex-1 flex items-center justify-center py-2.5 px-4 bg-white border-2 rounded-md text-black font-bold text-sm hover:bg-gray-50 transition-colors"
-             style={{ borderColor: colorScheme.primary }}
-             onClick={(e) => {
-               e.preventDefault();
-               onView();
-               window.open(document.filePath, '_blank');
-             }}
-           >
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-               <circle cx="12" cy="12" r="3"></circle>
-             </svg>
-             ดูเอกสาร
-           </a>
-           <a 
-             href={`${document.filePath}?download=true`}
-             download
-             className="flex-1 flex items-center justify-center py-2.5 px-4 bg-gray-200 border-2 border-gray-300 rounded-md text-black font-bold text-sm hover:bg-gray-300 transition-colors"
-             onClick={() => {
-               onDownload();
-             }}
-           >
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-               <polyline points="7 10 12 15 17 10"></polyline>
-               <line x1="12" y1="15" x2="12" y2="3"></line>
-             </svg>
-             ดาวน์โหลด
-           </a>
-         </div>
-       </div>
-     </div>
-   </>
- );
-}
-
-export default function MapMarker({ document: docData }: MapMarkerProps) {
- const colorScheme = getCategoryColor(docData.categoryId);
- const [icon, setIcon] = useState<any>(null);
- const [viewCount, setViewCount] = useState(docData.viewCount);
- const [downloadCount, setDownloadCount] = useState(docData.downloadCount);
- const [showPopup, setShowPopup] = useState(false);
- const [markerSize, setMarkerSize] = useState(28); // ขนาดเริ่มต้น
- const [circleRadius, setCircleRadius] = useState(25); // รัศมีเริ่มต้น
- const map = useMap();
- 
- // ติดตามการเปลี่ยนแปลงระดับการซูม
- useMapEvent('zoom', () => {
-   const zoomLevel = map.getZoom();
-   // ปรับขนาดตามระดับการซูม
-   const newSize = Math.max(16, Math.min(28, 8 + zoomLevel * 1.5));
-   const newRadius = Math.max(15, Math.min(25, 6 + zoomLevel * 1.4));
-   
-   setMarkerSize(newSize);
-   setCircleRadius(newRadius);
- });
- 
- // สร้าง icon สำหรับมาร์กเกอร์ โดยปรับขนาดตาม markerSize
- useEffect(() => {
-   if (typeof window === 'undefined') return;
-   
-   import('leaflet').then(L => {
-     const newIcon = L.default.divIcon({
-       html: `
-         <div style="position: relative;">
-           <div style="
-             width: ${markerSize}px;
-             height: ${markerSize}px;
-             background-color: ${colorScheme.primary};
-             border-radius: 50%;
-             border: ${markerSize > 20 ? 3 : 2}px solid white;
-             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-           "></div>
-           ${docData.isLatest ? `
-             <div style="
-               position: absolute;
-               top: -5px;
-               left: -5px;
-               right: -5px;
-               bottom: -5px;
-               border-radius: 50%;
-               border: 2px solid ${colorScheme.primary};
-               opacity: 0.7;
-               animation: pulse 1.5s infinite;
-             "></div>
-           ` : ''}
-         </div>
-       `,
-       className: 'custom-marker',
-       iconSize: [markerSize, markerSize],
-       iconAnchor: [markerSize/2, markerSize/2],
-       popupAnchor: [0, -markerSize/2]
-     });
-     
-     // เพิ่ม animation สำหรับ pulse effect
-     const styleId = 'map-marker-animations';
-     if (!document.getElementById(styleId)) {
-       const style = document.createElement('style');
-       style.id = styleId;
-       style.innerHTML = `
-         @keyframes pulse {
-           0% { transform: scale(1); opacity: 0.7; }
-           50% { transform: scale(1.3); opacity: 0.5; }
-           100% { transform: scale(1); opacity: 0.7; }
-         }
-       `;
-       document.head.appendChild(style);
-     }
-     
-     setIcon(newIcon);
-   });
- }, [docData.isLatest, colorScheme.primary, markerSize]);
- 
- // ฟังก์ชันเพิ่มจำนวนการดู
- const handleViewDocument = async () => {
-   try {
-     // เรียกใช้ API สำหรับเพิ่มจำนวนการดู
-     const response = await fetch(`/api/documents/view/${docData.id}`, {
-       method: 'POST',
-     });
-     
-     if (response.ok) {
-       setViewCount(prev => prev + 1);
-     }
-   } catch (error) {
-     console.error('Error incrementing view count:', error);
-   }
- };
- 
- // ฟังก์ชันเพิ่มจำนวนการดาวน์โหลด
- const handleDownload = async () => {
-   try {
-     // เรียกใช้ API สำหรับเพิ่มจำนวนการดาวน์โหลด
-     const response = await fetch(`/api/documents/download/${docData.id}`, {
-       method: 'POST',
-     });
-     
-     if (response.ok) {
-       setDownloadCount(prev => prev + 1);
-     }
-   } catch (error) {
-     console.error('Error incrementing download count:', error);
-   }
- };
- 
- // ฟังก์ชันเปิดป๊อปอัพแบบ modal
- const handleMarkerClick = () => {
-   setShowPopup(true);
- };
- 
- // รอให้ icon ถูกสร้างเสร็จก่อนแสดงผล
- if (!icon) return null;
- 
- return (
-   <>
-     <Marker
-       position={[docData.latitude, docData.longitude]}
-       icon={icon}
-       eventHandlers={{
-         click: handleMarkerClick
-       }}
-     />
-     
-     {docData.isLatest && (
-       <CircleMarker
-         center={[docData.latitude, docData.longitude]}
-         pathOptions={{
-           fillColor: 'transparent',
-           color: colorScheme.primary,
-           weight: 2,
-           opacity: 0.6,
-           dashArray: '5, 5'
-         }}
-         radius={circleRadius}
-       />
-     )}
-     
-     {showPopup && typeof document !== 'undefined' && createPortal(
-       <DocumentPopup 
-         document={{
-           ...docData,
-           viewCount,
-           downloadCount
-         }}
-         onClose={() => setShowPopup(false)}
-         onView={handleViewDocument}
-         onDownload={handleDownload}
-       />,
-       document.body
-     )}
-   </>
- );
+        <div class="popup-stats">
+          <div class="popup-stat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            จำนวนการดู: ${viewCount}
+          </div>
+          <div class="popup-stat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            ดาวน์โหลด: ${downloadCount}
+          </div>
+        </div>
+        
+        <div class="popup-actions">
+          <a 
+            href="${docData.filePath}" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="popup-btn popup-btn-primary view-document-btn"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            ดูเอกสาร
+          </a>
+          <a 
+            href="${docData.filePath}?download=true" 
+            download 
+            class="popup-btn popup-btn-secondary download-document-btn"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            ดาวน์โหลด
+          </a>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(popupContainer);
+    
+    // เพิ่ม event listener สำหรับปุ่มปิด
+    const closeBtn = popupContainer.querySelector('.popup-close-btn');
+    closeBtn?.addEventListener('click', () => {
+      popupContainer.remove();
+      if (backdrop) {
+        backdrop.style.display = 'none';
+      }
+    });
+    
+    // เพิ่ม event listener สำหรับปุ่มดูเอกสาร
+    const viewBtn = popupContainer.querySelector('.view-document-btn');
+    viewBtn?.addEventListener('click', handleViewDocument);
+    
+    // เพิ่ม event listener สำหรับปุ่มดาวน์โหลด
+    const downloadBtn = popupContainer.querySelector('.download-document-btn');
+    downloadBtn?.addEventListener('click', handleDownload);
+    
+    // ปิดป๊อปอัพเมื่อคลิกที่ backdrop
+    backdrop?.addEventListener('click', () => {
+      popupContainer.remove();
+      if (backdrop) {
+        backdrop.style.display = 'none';
+      }
+    });
+  };
+  
+  // ฟังก์ชันสำหรับ hover event
+  const handleMouseOver = () => {
+    if (onHover) {
+      onHover(docData.id);
+    }
+  };
+  
+  const handleMouseOut = () => {
+    if (onHover) {
+      onHover(null);
+    }
+  };
+  
+  // รอให้ icon ถูกสร้างเสร็จก่อนแสดงผล
+  if (!icon) return null;
+  
+  return (
+    <>
+      <Marker
+        position={[docData.latitude, docData.longitude]}
+        icon={icon}
+        eventHandlers={{
+          click: handleMarkerClick,
+          mouseover: handleMouseOver,
+          mouseout: handleMouseOut
+        }}
+      />
+      
+      {docData.isLatest && (
+        <CircleMarker
+          center={[docData.latitude, docData.longitude]}
+          pathOptions={{
+            fillColor: 'transparent',
+            color: colorScheme.primary,
+            weight: 2,
+            opacity: 0.6,
+            dashArray: '5, 5'
+          }}
+          radius={circleRadius}
+        />
+      )}
+    </>
+  );
 }

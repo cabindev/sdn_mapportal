@@ -23,6 +23,11 @@ const DynamicMapView = dynamic(
   }
 )
 
+const RecentDocumentsSidebar = dynamic(
+  () => import('@/app/dashboard/map/components/RecentDocumentsSidebar'),
+  { ssr: false }
+)
+
 interface MapFilterWrapperProps {
   categories: CategoryDoc[]
   documents: DocumentWithCategory[]
@@ -38,6 +43,7 @@ export default function MapFilterWrapper({
 }: MapFilterWrapperProps) {
   const [selectedCategories, setSelectedCategories] = useState<number[]>([])
   const [expanded, setExpanded] = useState(false)
+  const [highlightedDocId, setHighlightedDocId] = useState<number | null>(null)
   
   // ตั้งค่าเริ่มต้นให้เลือกทุกหมวดหมู่
   useEffect(() => {
@@ -61,6 +67,11 @@ export default function MapFilterWrapper({
     
     setSelectedCategories(newSelected)
   }
+
+  // คำนวณเอกสารล่าสุด 10 รายการ
+  const recentDocuments = documents
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10);
 
   // กำหนดความสูงของแผนที่ตาม prop
   const mapHeight = fullHeight 
@@ -134,18 +145,24 @@ export default function MapFilterWrapper({
         </div>
       )}
       
-      {/* แผนที่ - ใช้ความสูงที่ปรับตาม prop */}
-      <div className={`${mapHeight} relative`}>
-        <DynamicMapView 
-          categories={categories} 
-          documents={documents}
-          selectedCategories={selectedCategories}
-          setSelectedCategories={setSelectedCategories}
-          simplified={true} 
-          fullscreen={true}
-          showRecentDocuments={true}
-        />
-      </div>
-    </>
-  );
-}
+        {/* แผนที่ - ใช้ความสูงที่ปรับตาม prop */}
+        <div className={`${mapHeight} relative`}>
+          <DynamicMapView 
+            categories={categories} 
+            documents={documents}
+            selectedCategories={selectedCategories}
+            setSelectedCategories={setSelectedCategories}
+            simplified={true} 
+            fullscreen={true}
+            onHoverDocument={setHighlightedDocId}
+          >
+            {/* ปรับแต่ง RecentDocumentsSidebar ให้แสดงผลชัดเจนยิ่งขึ้น */}
+            <RecentDocumentsSidebar
+              documents={recentDocuments}
+              onHoverDocument={setHighlightedDocId}
+            />
+          </DynamicMapView>
+        </div>
+            </>
+          );
+        }

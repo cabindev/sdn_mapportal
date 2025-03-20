@@ -21,7 +21,7 @@
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
     "express": "^4.21.2",
-    "framer-motion": "^12.4.7",
+    "framer-motion": "^12.5.0",
     "html2canvas": "^1.4.1",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",

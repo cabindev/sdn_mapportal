@@ -10,7 +10,7 @@ import CategoriesTab from './CategoriesTab'
 import LegendTab from './LegendTab'
 import StatsTab from './StatsTab'
 import DocumentsTab from './DocumentsTab'
-import { FiChevronUp, FiChevronDown } from 'react-icons/fi'
+
 
 interface MapFooterProps {
   categories: CategoryDoc[]
@@ -20,7 +20,6 @@ interface MapFooterProps {
   toggleAllCategories: () => void
   highlightedDocId: number | null
   setHighlightedDocId: (id: number | null) => void
-  // ลบ onSearch และ onAddNewDocument
 }
 
 export default function MapFooter({
@@ -33,10 +32,11 @@ export default function MapFooter({
   setHighlightedDocId
 }: MapFooterProps) {
   const [activeTab, setActiveTab] = useState<'categories' | 'legend' | 'stats' | 'docs'>('categories')
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  // เราไม่ใช้ isCollapsed อีกต่อไปเพราะจะลบปุ่มนี้ออก
+  // const [isCollapsed, setIsCollapsed] = useState(false)
   const [newDocuments, setNewDocuments] = useState(0)
   
-  // จำลองการมีเอกสารใหม่
+  // คำนวณจำนวนเอกสารใหม่ (7 วันล่าสุด)
   useEffect(() => {
     const latestDocs = documents
       .filter(doc => new Date(doc.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
@@ -55,70 +55,60 @@ export default function MapFooter({
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )
   
-  return (
-    <div className={`bg-white border-t border-slate-200 flex-shrink-0 z-20 shadow-md transition-all duration-300 ${isCollapsed ? 'h-[42px]' : ''}`}>
-      {/* ปุ่มยุบ/ขยาย */}
-      <button 
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-t-lg border border-slate-200 border-b-0 px-4 py-1 shadow-sm text-slate-500 hover:text-orange-500 z-10"
-      >
-        {isCollapsed ? (
-          <><FiChevronUp className="inline mr-1" /> แสดงรายละเอียด</>
-        ) : (
-          <><FiChevronDown className="inline mr-1" /> ซ่อนรายละเอียด</>
-        )}
-      </button>
-      
-      {/* ส่วนหัว */}
+  // ใน components/MapFooter.tsx
+
+// ในส่วน return ของคอมโพเนนต์
+return (
+  <div className="bg-white border-t border-slate-200 flex flex-col h-full overflow-hidden">
+    {/* ส่วนหัว - ให้มีความสูงคงที่ */}
+    <div className="flex-shrink-0">
       <MapHeader 
         documentsCount={documents.length}
         filteredCount={filteredDocuments.length}
         toggleAllCategories={toggleAllCategories}
         selectedCategories={selectedCategories}
         categoriesCount={categories.length}
-        // ลบ onSearch และ onAddNewDocument
       />
+    </div>
 
-      {/* แท็บนำทาง & เนื้อหา (ซ่อนเมื่อยุบ) */}
-      {!isCollapsed && (
-        <>
-          <MapTabNavigation 
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            newDocuments={newDocuments}
-          />
+    {/* แท็บนำทาง - ให้มีความสูงคงที่ */}
+    <div className="flex-shrink-0">
+      <MapTabNavigation 
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        newDocuments={newDocuments}
+      />
+    </div>
 
-          {/* เนื้อหาตามแท็บ */}
-          <div className="overflow-y-auto bg-white" style={{ maxHeight: "300px" }}>
-            {activeTab === "categories" && (
-              <CategoriesTab 
-                categories={categories}
-                documents={documents}
-                selectedCategories={selectedCategories}
-                toggleCategory={toggleCategory}
-              />
-            )}
+    {/* เนื้อหาตามแท็บ - ให้ขยายพื้นที่ตามที่มี และมี scrollbar เมื่อเนื้อหาเกิน */}
+    <div className="flex-1 overflow-y-auto bg-white">
+      {activeTab === "categories" && (
+        <CategoriesTab 
+          categories={categories}
+          documents={documents}
+          selectedCategories={selectedCategories}
+          toggleCategory={toggleCategory}
+        />
+      )}
 
-            {activeTab === "legend" && <LegendTab categories={categories} />}
+      {activeTab === "legend" && <LegendTab categories={categories} />}
 
-            {activeTab === "stats" && (
-              <StatsTab 
-                categories={categories}
-                documents={documents}
-              />
-            )}
+      {activeTab === "stats" && (
+        <StatsTab 
+          categories={categories}
+          documents={documents}
+        />
+      )}
 
-            {activeTab === "docs" && (
-              <DocumentsTab 
-                documents={sortedDocuments}
-                categories={categories}
-                setHighlightedDocId={setHighlightedDocId}
-                toggleAllCategories={toggleAllCategories}
-              />
-            )}
-          </div>
-        </>
+      {activeTab === "docs" && (
+        <DocumentsTab 
+          documents={sortedDocuments}
+          categories={categories}
+          setHighlightedDocId={setHighlightedDocId}
+          toggleAllCategories={toggleAllCategories}
+        />
       )}
     </div>
-  )
+  </div>
+)
 }

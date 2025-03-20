@@ -16,7 +16,8 @@ import {
   TagIcon,
   Cog6ToothIcon,
   UsersIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 import { useSession } from 'next-auth/react';
 
@@ -24,7 +25,7 @@ const mainMenuItems = [
   {
     name: 'หน้าหลัก',
     href: '/dashboard',
-    icon: HomeIcon
+    icon: ChartBarIcon
   },
   {
     name: 'แผนที่',
@@ -66,7 +67,6 @@ const settingsMenu = {
       icon: UsersIcon,
       requireAdmin: true
     }
-    // สามารถเพิ่มเมนูย่อยอื่นๆ ได้ตรงนี้
   ]
 };
 
@@ -82,6 +82,7 @@ export default function Sidebar() {
     if (pathname?.startsWith('/dashboard/settings')) {
       setIsSettingsOpen(true);
     }
+    setIsMobileMenuOpen(false);
   }, [pathname]);
 
   const toggleMobileMenu = () => {
@@ -99,21 +100,22 @@ export default function Sidebar() {
     <>
       {/* Mobile Menu Toggle */}
       <button 
-        onClick={toggleMobileMenu}
-        className="lg:hidden fixed top-4 left-4 z-40 p-2 rounded-md bg-gray-800 text-white"
-      >
-        {isMobileMenuOpen ? (
-          <XMarkIcon className="w-6 h-6" />
-        ) : (
-          <Bars3Icon className="w-6 h-6" />
-        )}
-      </button>
+  onClick={toggleMobileMenu}
+  className="lg:hidden fixed top-16 left-4 z-40 p-2 rounded-md bg-white/80 text-gray-800 hover:bg-gray-100 transition-colors focus:outline-none shadow-sm"
+  aria-label="Toggle mobile menu"
+>
+  {isMobileMenuOpen ? (
+    <XMarkIcon className="w-6 h-6" />
+  ) : (
+    <Bars3Icon className="w-6 h-6" />
+  )}
+</button>
 
-      {/* Sidebar for Desktop */}
+      {/* Sidebar - เปลี่ยนจาก sticky เป็น fixed บนหน้าจอใหญ่ */}
       <div className={`
         fixed inset-y-0 left-0 z-30 transform lg:translate-x-0 transition duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:relative lg:flex lg:w-64 text-white bg-gray-900 min-h-screen flex flex-col
+        lg:fixed lg:top-14 lg:w-64 text-white bg-gray-900 flex flex-col h-[calc(100vh-3.5rem)] shadow-xl
       `}>
         {/* Header */}
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
@@ -123,13 +125,13 @@ export default function Sidebar() {
           </Link>
           <button 
             onClick={toggleMobileMenu}
-            className="lg:hidden text-white"
+            className="lg:hidden text-white hover:text-gray-300 transition-colors focus:outline-none"
           >
             <XMarkIcon className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Menu Items */}
+        {/* Menu Items - ใช้ auto overflow เฉพาะในส่วนนี้ */}
         <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-2">
             {/* เมนูหลัก */}
@@ -142,10 +144,10 @@ export default function Sidebar() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                    className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 ${
                       isActive 
-                        ? 'bg-orange-600 text-white' 
-                        : 'hover:bg-gray-800'
+                        ? 'bg-orange-600 text-white shadow-md' 
+                        : 'hover:bg-gray-800 hover:translate-x-1'
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -160,10 +162,10 @@ export default function Sidebar() {
             <li>
               <button
                 onClick={toggleSettings}
-                className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors ${
+                className={`flex items-center justify-between w-full p-3 rounded-lg transition-all duration-200 ${
                   isInSettingsPage 
-                    ? 'bg-orange-600 text-white' 
-                    : 'hover:bg-gray-800'
+                    ? 'bg-orange-600 text-white shadow-md' 
+                    : 'hover:bg-gray-800 hover:translate-x-1'
                 }`}
               >
                 <div className="flex items-center space-x-3">
@@ -196,10 +198,10 @@ export default function Sidebar() {
                       <li key={subMenu.href}>
                         <Link
                           href={subMenu.href}
-                          className={`flex items-center space-x-3 p-3 transition-colors ${
+                          className={`flex items-center space-x-3 p-3 transition-all duration-200 ${
                             isSubActive 
                               ? 'bg-orange-500 text-white' 
-                              : 'text-gray-300 hover:bg-gray-700'
+                              : 'text-gray-300 hover:bg-gray-700 hover:translate-x-1'
                           }`}
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
@@ -216,10 +218,10 @@ export default function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-800">
+        <div className="p-4 border-t border-gray-800 mt-auto">
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
-            className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-gray-800 transition-colors text-orange-100 hover:text-white"
+            className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-gray-800 transition-all duration-200 text-orange-100 hover:text-white"
           >
             <ArrowLeftOnRectangleIcon className="w-5 h-5" />
             <span>ออกจากระบบ</span>

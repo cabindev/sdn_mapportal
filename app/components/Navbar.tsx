@@ -31,6 +31,8 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
   
   // Use useEffect to fix hydration issues
@@ -42,6 +44,31 @@ const Navbar = () => {
   useEffect(() => {
     setIsMenuOpen(false);
   }, [status]);
+
+  // เพิ่ม effect สำหรับการจัดการการแสดง Navbar เมื่อ scroll
+  useEffect(() => {
+    // ฟังก์ชันจัดการ scroll
+    const controlNavbar = () => {
+      if (window.scrollY > 100) { // เริ่มซ่อน/แสดง navbar หลังจากเลื่อนลงมาเกิน 100px
+        if (window.scrollY > lastScrollY) { // เลื่อนลง -> ซ่อน navbar
+          setIsVisible(false);
+        } else { // เลื่อนขึ้น -> แสดง navbar
+          setIsVisible(true);
+        }
+      } else {
+        setIsVisible(true); // เมื่ออยู่ใกล้ด้านบนของหน้าเว็บ ให้แสดง navbar เสมอ
+      }
+      setLastScrollY(window.scrollY);
+    };
+
+    // เพิ่ม event listener สำหรับ scroll
+    window.addEventListener('scroll', controlNavbar);
+
+    // ลบ event listener เมื่อ component ถูก unmount
+    return () => {
+      window.removeEventListener('scroll', controlNavbar);
+    };
+  }, [lastScrollY]);
 
   const handleSignOut = async () => {
     try {
@@ -139,31 +166,30 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-transparent backdrop-blur-sm border-b border-gray-100/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+    <nav className={`fixed w-full top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100 transition-transform duration-300 
+      ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:ml-64">
+        {" "}
+        {/* เพิ่ม ml-64 เฉพาะบนหน้าจอขนาดใหญ่ */}
+        <div className="flex justify-between h-14">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            {isClient ? (
-              <Link href="/" className="flex items-center space-x-2">
-                <span className="text-2xl font-bold text-orange-600">
-                  SDN
-                </span>
-                <span className="text-2xl font-normal text-gray-700">
-                  Map Portal
-                </span>
-              </Link>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl font-bold text-orange-600">
-                  SDN
-                </span>
-                <span className="text-2xl font-normal text-gray-700">
-                  Map Portal
-                </span>
-              </div>
-            )}
-          </div>
+          {isClient ? (
+            <Link href="/" className="flex items-center space-x-2">
+              <span className="text-2xl font-bold text-orange-600 hidden sm:inline">SDN</span>
+              <span className="text-2xl font-normal text-gray-700 hidden sm:inline">
+                Map Portal
+              </span>
+            </Link>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl font-bold text-orange-600 hidden sm:inline">SDN</span>
+              <span className="text-2xl font-normal text-gray-700 hidden sm:inline">
+                Map Portal
+              </span>
+            </div>
+          )}
+        </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
@@ -172,7 +198,7 @@ const Navbar = () => {
 
           {/* Auth Section */}
           <div className="flex items-center space-x-4">
-            {isClient && status === 'authenticated' && session ? (
+            {isClient && status === "authenticated" && session ? (
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -188,7 +214,9 @@ const Navbar = () => {
                     ) : (
                       <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                         <span className="text-sm font-medium text-gray-600">
-                          {session.user?.lastName?.[0] || session.user?.firstName?.[0] || '?'}
+                          {session.user?.lastName?.[0] ||
+                            session.user?.firstName?.[0] ||
+                            "?"}
                         </span>
                       </div>
                     )}
@@ -207,10 +235,10 @@ const Navbar = () => {
                         {session.user?.email}
                       </p>
                     </div>
-                    
+
                     <div className="py-1">
-                      <Link 
-                        href="/dashboard/profile" 
+                      <Link
+                        href="/dashboard/profile"
                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
                         onClick={() => setIsMenuOpen(false)}
                       >
@@ -218,7 +246,7 @@ const Navbar = () => {
                         Profile
                       </Link>
                     </div>
-                    
+
                     <div className="py-1 border-t border-gray-100">
                       <button
                         onClick={handleSignOut}
@@ -231,7 +259,7 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
-            ) : isClient === false || status === 'loading' ? (
+            ) : isClient === false || status === "loading" ? (
               // Show loading indicator while checking session
               <div className="w-6 h-6 border-2 border-gray-200 border-t-orange-500 rounded-full animate-spin"></div>
             ) : (
@@ -292,10 +320,12 @@ const Navbar = () => {
                       className="w-full flex items-center justify-between px-3 py-2 text-base text-gray-700 hover:bg-gray-50/50 transition-colors"
                     >
                       <span>{item.label}</span>
-                      <IoIosArrowDown className={`
+                      <IoIosArrowDown
+                        className={`
                         w-4 h-4 transition-transform duration-200
-                        ${openSubmenu === item.href ? 'rotate-180' : ''}
-                      `} />
+                        ${openSubmenu === item.href ? "rotate-180" : ""}
+                      `}
+                      />
                     </button>
 
                     {openSubmenu === item.href && (
@@ -321,7 +351,7 @@ const Navbar = () => {
                     href={item.href}
                     className={`
                       block px-3 py-2 text-base text-gray-700 hover:bg-gray-50/50 transition-colors
-                      ${pathname === item.href ? 'text-orange-600' : ''}
+                      ${pathname === item.href ? "text-orange-600" : ""}
                     `}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -330,9 +360,9 @@ const Navbar = () => {
                 )}
               </div>
             ))}
-            
+
             {/* Always show auth options in mobile menu */}
-            {isClient && status === 'authenticated' ? (
+            {isClient && status === "authenticated" ? (
               <div className="pt-4 pb-2 border-t border-gray-200/30">
                 <div className="space-y-1">
                   <Link
@@ -343,7 +373,7 @@ const Navbar = () => {
                     <FiUser className="mr-3 h-5 w-5" />
                     Profile
                   </Link>
-                 
+
                   <button
                     onClick={() => {
                       handleSignOut();
@@ -356,7 +386,7 @@ const Navbar = () => {
                   </button>
                 </div>
               </div>
-            ) : isClient && status !== 'authenticated' ? (
+            ) : isClient && status !== "authenticated" ? (
               <div className="pt-4 pb-2 border-t border-gray-200/30">
                 <div className="flex flex-col space-y-2 px-3">
                   <Link
@@ -395,6 +425,9 @@ const Navbar = () => {
           </div>
         </div>
       )}
+
+      {/* เพิ่ม padding-top เพื่อชดเชยความสูงของ Navbar ที่ fixed แล้ว */}
+      <div className="14"></div>
     </nav>
   );
 };

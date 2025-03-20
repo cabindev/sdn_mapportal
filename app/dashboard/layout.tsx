@@ -17,11 +17,13 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 bg-gray-100">
-        <div className="container mx-auto py-6">
-          {children}
-        </div>
-      </main>
+      <div className="flex-1 bg-gray-100 lg:ml-64"> {/* เพิ่ม margin left เท่ากับความกว้างของ sidebar */}
+        <main>
+          <div className="container mx-auto py-6 px-4">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

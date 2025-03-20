@@ -28,7 +28,7 @@ export default async function HomePage() {
     .slice(0, 5);
 
   return (
-    <main className="min-h-screen">
+    <main className="">
 
       {/* Hero Section + Map แบบรวมกัน */}
       <div className="relative min-h-screen  pt-4 ">

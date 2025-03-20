@@ -2,12 +2,11 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, ZoomControl, Rectangle } from "react-leaflet";
+import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";
 import { CategoryDoc } from "@prisma/client";
 import { DocumentWithCategory, LocationData } from "@/app/types/document";
 import { getDocuments } from "@/app/lib/actions/documents/get";
 import { toast } from "react-hot-toast";
-import dynamic from "next/dynamic";
 import DocumentForm from "./DocumentForm";
 import MapMarker from "./MapMarker";
 import { THAILAND_BOUNDS } from "@/app/utils/colorGenerator";
@@ -16,15 +15,6 @@ import CircleLoader from "./CircleLoader";
 import TambonSearch from "./TambonSearch";
 import LocationMarker from "./LocationMarker";
 import ProvinceMarkers from "./ProvinceMarkers";
-
-// นำเข้า RecentDocumentsSidebar แบบ dynamic และเฉพาะเมื่อจำเป็น
-const RecentDocumentsSidebar = dynamic(
-  () => import("./RecentDocumentsSidebar"),
-  { 
-    ssr: false, 
-    loading: () => <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md rounded-lg p-4 shadow-md w-64 h-80"></div> 
-  }
-);
 
 // CSS สำหรับ custom marker และ animation
 const addCustomStyles = () => {
@@ -109,8 +99,6 @@ const addCustomStyles = () => {
   };
 };
 
-
-
 // Component หลัก
 interface DynamicMapViewProps {
   categories: CategoryDoc[];
@@ -119,9 +107,8 @@ interface DynamicMapViewProps {
   setSelectedCategories?: (ids: number[]) => void;
   simplified?: boolean;
   fullscreen?: boolean;
-  showRecentDocuments?: boolean;
-  recentDocuments?: DocumentWithCategory[]; 
   onHoverDocument?: (documentId: number | null) => void;
+  children?: React.ReactNode; // เพิ่ม children เพื่อรองรับการใส่ components เข้ามาจากภายนอก
 }
 
 export default function DynamicMapView({
@@ -131,9 +118,8 @@ export default function DynamicMapView({
   setSelectedCategories: externalSetSelectedCategories,
   simplified = false,
   fullscreen = false,
-  showRecentDocuments = true, // เปลี่ยนค่าเริ่มต้นเป็น true
-  recentDocuments: externalRecentDocuments,
   onHoverDocument: externalOnHoverDocument,
+  children
 }: DynamicMapViewProps) {
   // ปรับ type ให้เข้ากับ type ที่มีใน LocationMarker
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -171,9 +157,8 @@ export default function DynamicMapView({
   };
 
   // ใช้ custom hook เพื่อจัดการข้อมูล
-  const { filteredDocuments, sortedDocuments, processedDocuments } =
+  const { processedDocuments } =
     useProcessedDocuments(documents, selectedCategories, highlightedDocId);
-
     
   // เพิ่ม CSS styles
   useEffect(() => {
@@ -221,22 +206,12 @@ export default function DynamicMapView({
     loadDocuments();
   }, [categories, externalDocuments]);
 
-  // คำนวณเอกสารล่าสุดเฉพาะเมื่อต้องแสดง
-  const recentDocs = useMemo(() => {
-    if (!showRecentDocuments) return [];
-    
-    return externalRecentDocuments || 
-      [...documents].sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      ).slice(0, 10);
-  }, [showRecentDocuments, externalRecentDocuments, documents]);
-
   if (isLoading) {
     return <CircleLoader />;
   }
 
   return (
-    <div className="w-full h-full relative">
+    <div className="absolute inset-0">
       {mapReady && (
         <MapContainer
           center={THAILAND_BOUNDS.center}
@@ -254,14 +229,16 @@ export default function DynamicMapView({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-
-
           {/* แสดงจุดจังหวัดเมื่อซูมเข้า */}
           <ProvinceMarkers />
 
           {/* แสดงข้อมูลเอกสารบนแผนที่ */}
           {processedDocuments.map((doc) => (
-            <MapMarker key={doc.id} document={doc} />
+            <MapMarker 
+              key={doc.id} 
+              document={doc} 
+              onHover={handleHoverDocument}
+            />
           ))}
 
           {/* แสดง LocationMarker เฉพาะเมื่อไม่ใช่โหมด simplified */}
@@ -274,13 +251,8 @@ export default function DynamicMapView({
           {/* แสดง ZoomControl ในตำแหน่งที่ด้านบนขวา */}
           <ZoomControl position="topright" />
           
-          {/* แสดงรายการเอกสารล่าสุดเฉพาะเมื่อต้องการ และมีเอกสาร */}
-          {showRecentDocuments && documents.length > 0 && (
-            <RecentDocumentsSidebar
-              documents={recentDocs}
-              onHoverDocument={handleHoverDocument}
-            />
-          )}
+          {/* รองรับการแสดงผล components เพิ่มเติมจากภายนอก */}
+          {children}
         </MapContainer>
       )}
 
