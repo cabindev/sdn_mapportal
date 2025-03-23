@@ -15,7 +15,7 @@ export default function MapTabNavigation({
   newDocuments
 }: MapTabNavigationProps) {
   return (
-    <div className="sticky top-[4.25rem] bg-white z-20 px-2 py-1 border-b border-slate-200">
+    <div className="sticky top-[4.25rem] bg-white  px-2 py-1 border-b border-slate-200">
       <div className="flex">
         <button
           onClick={() => setActiveTab("categories")}

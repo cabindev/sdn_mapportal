@@ -135,7 +135,7 @@ export default function MapPage() {
       </div>
       
       {/* แถบข้อมูลด้านล่าง - ใช้ MapFooter */}
-      <div className="bg-white shadow-md border-t border-gray-200 z-10">
+      <div className="bg-white shadow-md border-t border-gray-200 ">
         <MapFooter
           categories={categories}
           documents={documents}
