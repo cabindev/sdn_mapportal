@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { FiMapPin } from 'react-icons/fi';
 
 // โหลด GoogleMapView แบบ Dynamic
-const GoogleMapView = dynamic(() => import('./GoogleMapView'), {
+const GoogleMapView = dynamic(() => import('@/app/google/components/GoogleMapView'), {
   ssr: false,
   loading: () => (
     <div className="bg-gray-100 animate-pulse h-[600px] rounded-lg flex items-center justify-center">
