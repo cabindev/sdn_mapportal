@@ -9,6 +9,9 @@ import { toast } from 'react-hot-toast'
 import Image from 'next/image'
 import imageCompression from 'browser-image-compression'
 
+// ค่าคงที่สำหรับจำกัดขนาดไฟล์
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB in bytes
+
 interface DocumentFormProps {
   categories: CategoryDoc[];
   location?: LocationData;
@@ -35,6 +38,9 @@ export default function DocumentForm({
   
   const [previewImage, setPreviewImage] = useState<string | null>(initialData?.coverImage || null)
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
+  const [selectedDocumentFile, setSelectedDocumentFile] = useState<File | null>(null)
+  const [documentFileSize, setDocumentFileSize] = useState<string | null>(null)
+  const [isLargeDocument, setIsLargeDocument] = useState(false)
 
   // สร้าง locationData จาก initialData หรือ location
   const locationData = initialData ? {
@@ -89,6 +95,13 @@ export default function DocumentForm({
       return
     }
 
+    // ตรวจสอบขนาดไฟล์
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`ขนาดไฟล์เกิน 100MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า`)
+      e.target.value = ''
+      return
+    }
+
     // เก็บไฟล์ที่เลือกไว้เพื่อใช้ในการบีบอัดภายหลัง
     setSelectedImageFile(file)
 
@@ -98,6 +111,60 @@ export default function DocumentForm({
       setPreviewImage(reader.result as string)
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // ตรวจสอบประเภทไฟล์
+    const validTypes = ['.pdf', '.doc', '.docx', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    const isValidType = validTypes.some(type => 
+      file.type.includes(type.replace('.', '')) || file.name.endsWith(type)
+    )
+
+    if (!isValidType) {
+      toast.error('กรุณาอัพโหลดไฟล์ PDF หรือ Word เท่านั้น')
+      e.target.value = ''
+      return
+    }
+
+    // ตรวจสอบขนาดไฟล์
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`ขนาดไฟล์เกิน 100MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า`)
+      e.target.value = ''
+      return
+    }
+
+    // เก็บข้อมูลไฟล์
+    setSelectedDocumentFile(file)
+    
+    // คำนวณและแสดงขนาดไฟล์
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
+    setDocumentFileSize(fileSizeMB)
+    
+    // เช็คขนาดไฟล์ใหญ่ (>80MB) เพื่อใช้กำหนดสีแสดงผล
+    setIsLargeDocument(file.size > 80 * 1024 * 1024)
+
+    // อัพเดท UI เพื่อแสดงชื่อไฟล์ที่เลือก
+    const fileNameElement = document.getElementById('selected-document-name')
+    const fileSizeElement = document.getElementById('selected-document-size')
+    
+    if (fileNameElement) {
+      fileNameElement.textContent = file.name
+      document.getElementById('selected-document-container')?.classList.remove('hidden')
+    }
+    
+    if (fileSizeElement) {
+      fileSizeElement.textContent = `${fileSizeMB} MB`
+      
+      // กำหนดสีตามขนาดไฟล์
+      if (file.size > 80 * 1024 * 1024) {
+        fileSizeElement.className = 'text-sm font-medium text-orange-600 ml-1'
+      } else {
+        fileSizeElement.className = 'text-sm font-medium text-gray-600 ml-1'
+      }
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -118,16 +185,35 @@ export default function DocumentForm({
         }
       }
       
+      // ตรวจสอบขนาดไฟล์เอกสาร
+      const documentFile = formData.get('document') as File
+      if (documentFile && documentFile.size > MAX_FILE_SIZE) {
+        toast.error('ขนาดไฟล์เกิน 100MB กรุณาเลือกไฟล์ขนาดเล็กกว่านี้')
+        setInternalIsSubmitting(false)
+        return
+      }
+      
+      // ตรวจสอบขนาดรูปภาพ (ถ้ามีการเลือกใหม่)
+      if (selectedImageFile && selectedImageFile.size > MAX_FILE_SIZE) {
+        toast.error('ขนาดไฟล์รูปภาพเกิน 100MB กรุณาเลือกรูปที่มีขนาดเล็กกว่า')
+        setInternalIsSubmitting(false)
+        return
+      }
+      
       // ถ้ามีการเลือกไฟล์ภาพใหม่ ทำการบีบอัดก่อนแนบไปกับ FormData
       if (selectedImageFile) {
         // ลบ coverImage เดิมที่อยู่ใน formData (ที่ถูกเพิ่มโดย form browser)
         formData.delete('coverImage')
         
+        // แสดงสถานะกำลังบีบอัด
+        toast.loading('กำลังบีบอัดรูปภาพ...', { id: 'compressionToast' })
+        
         // บีบอัดภาพและเพิ่มลงใน formData
         const compressedImageFile = await compressImage(selectedImageFile)
         formData.append('coverImage', compressedImageFile)
         
-        // แสดงข้อความแจ้งเตือน
+        // แสดงข้อความแจ้งเตือนสำเร็จ
+        toast.dismiss('compressionToast')
         toast.success(`บีบอัดภาพสำเร็จ: ${(compressedImageFile.size / 1024 / 1024).toFixed(2)} MB`)
       }
       
@@ -143,24 +229,50 @@ export default function DocumentForm({
           formData.append('zone', location.zone)
         }
   
+        // แสดงสถานะกำลังอัพโหลด
+        toast.loading('กำลังอัพโหลดไฟล์และบันทึกข้อมูล...', { id: 'uploadToast' })
+        
         if (onSubmit) {
           await onSubmit(formData)
         } else {
           await createDocument(formData)
         }
         
+        toast.dismiss('uploadToast')
         toast.success('บันทึกข้อมูลสำเร็จ')
         if (onSuccess) await onSuccess()
       } 
       // ถ้าเป็นโหมด edit
       else if (action) {
+        toast.loading('กำลังบันทึกข้อมูล...', { id: 'uploadToast' })
         await action(formData)
+        toast.dismiss('uploadToast')
       }
       
       if (onClose) onClose()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
-      toast.error(message)
+      toast.dismiss('compressionToast')
+      toast.dismiss('uploadToast')
+      
+      let message = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
+      
+      if (error instanceof Error) {
+        // ข้อความแสดงข้อผิดพลาดที่เฉพาะเจาะจงยิ่งขึ้น
+        if (error.message.includes('NEXT_REDIRECT')) {
+          // ไม่ต้องแสดงข้อผิดพลาดสำหรับการ redirect
+        } else if (error.message.includes('timeout')) {
+          message = 'การอัพโหลดไฟล์ใช้เวลานานเกินไป โปรดลองใช้ไฟล์ที่มีขนาดเล็กลง'
+        } else if (error.message.includes('network')) {
+          message = 'เกิดปัญหาเครือข่ายระหว่างการอัพโหลด โปรดตรวจสอบการเชื่อมต่อ'
+        } else {
+          message = error.message
+        }
+      }
+      
+      // แสดงข้อผิดพลาดเฉพาะกรณีที่ไม่ใช่ redirect
+      if (error && !error.toString().includes('NEXT_REDIRECT')) {
+        toast.error(message);
+      }
     } finally {
       setInternalIsSubmitting(false)
     }
@@ -313,7 +425,7 @@ export default function DocumentForm({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                 </svg>
                 <p className="mb-2 text-sm text-gray-700"><span className="font-medium">คลิกเพื่ออัพโหลดเอกสาร</span></p>
-                <p className="text-xs text-gray-500">PDF หรือ Word (สูงสุด 10MB)</p>
+                <p className="text-xs text-gray-500">PDF หรือ Word (สูงสุด 100MB)</p>
               </div>
               <input 
                 type="file"
@@ -321,16 +433,7 @@ export default function DocumentForm({
                 id="document"
                 required={!initialData}
                 accept=".pdf,.doc,.docx"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    // อัพเดท UI เพื่อแสดงชื่อไฟล์ที่เลือก
-                    const fileNameElement = document.getElementById('selected-document-name');
-                    if (fileNameElement) {
-                      fileNameElement.textContent = e.target.files[0].name;
-                      document.getElementById('selected-document-container')?.classList.remove('hidden');
-                    }
-                  }
-                }}
+                onChange={handleDocumentChange}
                 className="hidden"
               />
             </label>
@@ -343,6 +446,9 @@ export default function DocumentForm({
             </svg>
             <span className="text-sm text-gray-700">ไฟล์ที่เลือก: </span>
             <span id="selected-document-name" className="text-sm font-medium text-orange-600 ml-1"></span>
+            <span className="text-sm text-gray-700 ml-2">(</span>
+            <span id="selected-document-size" className="text-sm font-medium text-gray-600 ml-1"></span>
+            <span className="text-sm text-gray-700">)</span>
           </div>
           
           {/* แสดงไฟล์เดิม (กรณีแก้ไข) */}
@@ -355,6 +461,14 @@ export default function DocumentForm({
               <span className="text-sm font-medium text-orange-600 ml-1">{initialData.filePath.split('/').pop()}</span>
             </div>
           )}
+          
+          {/* คำแนะนำขนาดไฟล์ */}
+          <div className="text-xs text-gray-500 mt-1 flex items-center">
+            <svg className="h-3.5 w-3.5 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            หากพบปัญหาในการอัพโหลดไฟล์ขนาดใหญ่ แนะนำให้แบ่งไฟล์เป็นส่วนย่อยๆ หรือบีบอัดไฟล์ก่อนอัพโหลด
+          </div>
         </div>
 
         {/* รูปปก */}
