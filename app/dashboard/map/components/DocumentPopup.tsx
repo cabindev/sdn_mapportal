@@ -49,39 +49,47 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
       />
       
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] max-w-[90vw] max-h-[90vh] bg-white rounded-xl shadow-2xl z-[1000] overflow-hidden animate-fade-in">
-        <div className="relative h-[180px]" style={{ backgroundColor: `${colorScheme.primary}20` }}>
-          {document.coverImage ? (
-            <img 
-              src={document.coverImage} 
-              alt={document.title} 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="flex items-center justify-center w-full h-full">
-              <div 
-                className="w-[100px] h-[100px] rounded-full flex flex-col items-center justify-center text-white shadow-lg"
-                style={{ backgroundColor: colorScheme.primary }}
-              >
-                <div className="text-xl font-bold">เอกสาร</div>
-                <div className="text-xs">{document.category?.name?.substring(0, 3) || ''}</div>
-              </div>
-            </div>
-          )}
-          
-          <div 
-            className="absolute top-3 left-3 px-3 py-1 rounded-full text-white text-sm font-medium shadow-md"
-            style={{ backgroundColor: colorScheme.primary }}
-          >
-            {document.category?.name || 'ไม่ระบุหมวดหมู่'}
-          </div>
-          
-          <button 
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black bg-opacity-25 text-white flex items-center justify-center text-lg"
-            onClick={onClose}
-          >
-            ×
-          </button>
-        </div>
+      <div className="relative h-[270px]" style={{ backgroundColor: `${colorScheme.primary}20` }}>
+  {document.coverImage ? (
+    <div className="relative h-full w-full overflow-hidden">
+      <img 
+        src={document.coverImage} 
+        alt={document.title} 
+        className="w-full h-full object-contain hover:cursor-zoom-in"
+        onClick={(e) => {
+          e.stopPropagation(); // ป้องกันการปิด popup
+          // สร้างหน้าต่างใหม่หรือแสดง modal เพื่อดูรูปขนาดเต็ม
+          window.open(document.coverImage, '_blank');
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
+    </div>
+  ) : (
+    <div className="flex items-center justify-center w-full h-full">
+      <div 
+        className="w-[100px] h-[100px] rounded-full flex flex-col items-center justify-center text-white shadow-lg"
+        style={{ backgroundColor: colorScheme.primary }}
+      >
+        <div className="text-xl font-bold">เอกสาร</div>
+        <div className="text-xs">{document.category?.name?.substring(0, 3) || ''}</div>
+      </div>
+    </div>
+  )}
+  
+  <div 
+    className="absolute top-3 left-3 px-3 py-1 rounded-full text-white text-sm font-medium shadow-md"
+    style={{ backgroundColor: colorScheme.primary }}
+  >
+    {document.category?.name || 'ไม่ระบุหมวดหมู่'}
+  </div>
+  
+  <button 
+    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black bg-opacity-25 text-white flex items-center justify-center text-lg"
+    onClick={onClose}
+  >
+    ×
+  </button>
+</div>
         
         <div className="p-5 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 180px)' }}>
           <h3 className="text-lg font-semibold text-gray-800 mb-3">{document.title}</h3>

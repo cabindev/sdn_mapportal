@@ -24,7 +24,9 @@ interface MapClientWrapperProps {
   simplified?: boolean;
   fullscreen?: boolean;
   showRecentDocuments?: boolean;
-  showUnpublished?: boolean; // เพิ่ม prop สำหรับควบคุมการแสดงเอกสารที่ไม่เผยแพร่
+  showUnpublished?: boolean;
+  mapHeight?: string; // เพิ่ม prop สำหรับกำหนดความสูงของแผนที่
+  mapWidth?: string;  // เพิ่ม prop สำหรับกำหนดความกว้างของแผนที่
 }
 
 export default function MapClientWrapper({ 
@@ -35,7 +37,9 @@ export default function MapClientWrapper({
   simplified = false,
   fullscreen = false,
   showRecentDocuments = true,
-  showUnpublished = false // default ไม่แสดงเอกสารที่ไม่เผยแพร่
+  showUnpublished = false,
+  mapHeight = 'h-[85vh]', // ค่าเริ่มต้นที่สูงขึ้น
+  mapWidth = 'w-full'     // ค่าเริ่มต้นแบบเต็มความกว้าง
 }: MapClientWrapperProps) {
   // สร้าง state ภายในสำหรับกรณีที่ไม่มี props จากภายนอก
   const [internalSelectedCategories, setInternalSelectedCategories] = useState<number[]>(
@@ -67,15 +71,17 @@ export default function MapClientWrapper({
   }, [filteredDocuments, showRecentDocuments]);
 
   return (
-    <DynamicMapClient 
-      categories={categories}
-      documents={filteredDocuments}
-      selectedCategories={selectedCategories}
-      setSelectedCategories={setSelectedCategories}
-      simplified={simplified}
-      fullscreen={fullscreen}
-      showRecentDocuments={showRecentDocuments}
-      recentDocuments={recentDocuments}
-    />
+    <div className={`${mapWidth} ${mapHeight}`}>
+      <DynamicMapClient 
+        categories={categories}
+        documents={filteredDocuments}
+        selectedCategories={selectedCategories}
+        setSelectedCategories={setSelectedCategories}
+        simplified={simplified}
+        fullscreen={fullscreen}
+        showRecentDocuments={showRecentDocuments}
+        recentDocuments={recentDocuments}
+      />
+    </div>
   )
 }

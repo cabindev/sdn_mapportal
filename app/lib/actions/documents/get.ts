@@ -29,6 +29,27 @@ export const getDocuments = unstable_cache(
   }
 )
 
+// เพิ่มฟังก์ชัน getDocumentById
+export async function getDocumentById(id: number) {
+  try {
+    const document = await prisma.document.findUnique({
+      where: { id },
+      include: {
+        category: true,
+      }
+    });
+
+    if (!document) {
+      return null;
+    }
+
+    return document;
+  } catch (error) {
+    console.error('Error fetching document by ID:', error);
+    throw new Error('ไม่สามารถดึงข้อมูลเอกสารได้');
+  }
+}
+
 // Cache function for getting only published documents
 export const getPublishedDocuments = unstable_cache(
   async () => {
