@@ -58,8 +58,8 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
         className="w-full h-full object-contain hover:cursor-zoom-in"
         onClick={(e) => {
           e.stopPropagation(); // ป้องกันการปิด popup
-          // สร้างหน้าต่างใหม่หรือแสดง modal เพื่อดูรูปขนาดเต็ม
-          window.open(document.coverImage, '_blank');
+          // ถ้า coverImage เป็น null จะใช้ empty string แทน
+          window.open(document.coverImage ?? '', '_blank');
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
