@@ -134,3 +134,65 @@ export function getThaiZoneName(zoneCode: HealthZone): string {
   
   return zoneNames[zoneCode];
 }
+
+// ฟังก์ชันดึงรายการภูมิภาคทั้งหมด
+export function getAllHealthZones(): HealthZone[] {
+  return [
+    'north-upper',
+    'north-lower',
+    'northeast-upper',
+    'northeast-lower',
+    'central',
+    'east',
+    'west',
+    'south-upper',
+    'south-lower',
+    'bangkok'
+  ];
+}
+
+// ฟังก์ชันดึงรายชื่อจังหวัดในภูมิภาค
+export function getProvincesByZone(zone: HealthZone): string[] {
+  return Object.entries(provinceHealthZones)
+    .filter(([_, provinceZone]) => provinceZone === zone)
+    .map(([province]) => province)
+    .sort(); // เรียงตามตัวอักษร
+}
+
+// ฟังก์ชันดึงสีของแต่ละภูมิภาค
+export function getZoneColor(zone: HealthZone): string {
+  const zoneColors: Record<HealthZone, string> = {
+    "north-upper": "#4CAF50", // เขียว
+    "north-lower": "#8BC34A", // เขียวอ่อน
+    "northeast-upper": "#FF9800", // ส้ม
+    "northeast-lower": "#FFC107", // เหลือง
+    "central": "#9C27B0", // ม่วง
+    "east": "#00BCD4", // ฟ้า
+    "west": "#795548", // น้ำตาล
+    "south-upper": "#2196F3", // น้ำเงิน
+    "south-lower": "#3F51B5", // น้ำเงินเข้ม
+    "bangkok": "#E91E63", // ชมพู
+  };
+  
+  return zoneColors[zone];
+}
+
+// ฟังก์ชันนับจำนวนจังหวัดในแต่ละภูมิภาค
+export function countProvincesByZone(zone: HealthZone): number {
+  return getProvincesByZone(zone).length;
+}
+
+// ฟังก์ชันดึงข้อมูลสรุปของแต่ละภูมิภาค
+export function getZoneSummary(): Array<{
+  id: HealthZone;
+  name: string;
+  provinceCount: number;
+  color: string;
+}> {
+  return getAllHealthZones().map(zone => ({
+    id: zone,
+    name: getThaiZoneName(zone),
+    provinceCount: countProvincesByZone(zone),
+    color: getZoneColor(zone)
+  }));
+}

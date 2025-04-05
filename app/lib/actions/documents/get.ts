@@ -226,3 +226,56 @@ export const getPublishedDocumentsByProvince = unstable_cache(
     tags: ['documents', 'published-documents']
   }
 )
+
+// ฟังก์ชันสำหรับดึงกิจกรรมล่าสุด (เพิ่มเข้าไปที่ส่วนท้ายของไฟล์)
+export const getRecentActivities = unstable_cache(
+  async (limit = 5) => {
+    try {
+      // ดึงข้อมูลเอกสารล่าสุดที่มีการสร้าง แก้ไข หรือเผยแพร่
+      const recentDocuments = await prisma.document.findMany({
+        take: limit,
+        orderBy: {
+          updatedAt: 'desc'
+        },
+        include: {
+          user: true,
+          category: true
+        }
+      });
+
+      // สร้างข้อมูลกิจกรรมจากเอกสาร
+      const activities = recentDocuments.map(doc => {
+        // กำหนดประเภทกิจกรรมตามความเก่าใหม่ของเอกสาร
+        let type: 'new' | 'update' | 'publish' = 'update';
+        
+        // หากเอกสารถูกสร้างเมื่อไม่นานมานี้ (น้อยกว่า 1 วัน)
+        const isNewDoc = new Date().getTime() - new Date(doc.createdAt).getTime() < 24 * 60 * 60 * 1000;
+        
+        if (isNewDoc) {
+          type = 'new';
+        } else if (doc.isPublished && doc.updatedAt > doc.createdAt) {
+          type = 'publish';
+        }
+        
+        return {
+          id: doc.id,
+          type,
+          documentName: doc.title,
+          userName: `${doc.user.firstName} ${doc.user.lastName}`,
+          timestamp: doc.updatedAt.toISOString(),
+          documentId: doc.id
+        };
+      });
+
+      return activities;
+    } catch (error) {
+      console.error('Error fetching recent activities:', error);
+      return [];
+    }
+  },
+  ['recent-activities'],
+  {
+    revalidate: 60,
+    tags: ['documents', 'activities']
+  }
+);

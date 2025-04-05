@@ -1,3 +1,4 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter, Kanit } from 'next/font/google';
 import "./globals.css";
@@ -31,14 +32,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getServerSession(authOptions);
+  
   return (
     <html lang="th" className="scroll-smooth">
       <body className={`${inter.variable} ${kanit.variable} font-sans antialiased`}>
         <SessionProvider session={session}>
-          <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
-            <Navbar />
-          </header>
-          <main className="pt-16 min-h-[calc(100vh-4rem)]">
+          <Navbar />
+          <main className="min-h-[calc(100vh-4rem)]">
             {children}
           </main>
           <Toaster position="top-center" expand={true} richColors />

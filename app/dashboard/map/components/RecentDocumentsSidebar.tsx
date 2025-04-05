@@ -199,7 +199,7 @@ export default function RecentDocumentsSidebar({
                >
                  <div className="flex items-start gap-3">
                    {doc.coverImage ? (
-                     <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden shadow-sm">
+                     <div className="flex-shrink-0 w-16 h-9 rounded-md overflow-hidden shadow-sm">
                        <img 
                          src={doc.coverImage} 
                          alt={doc.title}

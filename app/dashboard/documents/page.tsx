@@ -118,7 +118,7 @@ export default async function DocumentsPage({
           
           <div className="w-full md:w-64">
             <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-              หมวดหมู่
+              ประเภทงาน
             </label>
             <select
               id="category"
@@ -126,7 +126,7 @@ export default async function DocumentsPage({
               defaultValue={categoryId ?? ''}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-500 focus:ring-opacity-50"
             >
-              <option value="">ทุกหมวดหมู่</option>
+              <option value="">ทุกประเภทงาน</option>
               {/* แสดงรายการหมวดหมู่ที่ดึงมาจากฐานข้อมูล */}
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>

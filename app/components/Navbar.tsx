@@ -1,103 +1,71 @@
-// app/components/Navbar.tsx
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from 'next/navigation';
-import { HiMenuAlt3 } from "react-icons/hi";
-import { IoIosArrowDown } from "react-icons/io";
-import { FiUser, FiLogOut, FiSettings } from "react-icons/fi";
+import { Menu, X, User, LogOut, MapPin, Home, LayoutDashboard, ChevronDown, Settings } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
 
-// Define Types
-interface SubNavItem {
-  href: string;
-  label: string;
-}
-
+// Type definitions
 interface NavItem {
   href: string;
   label: string;
-  subItems?: SubNavItem[];
+  icon: React.ReactNode;
   requireAuth?: boolean;
   requireAdmin?: boolean;
 }
+
+// ฟังก์ชันช่วยสำหรับการรวม classname
+const cn = (...classes: any[]) => {
+  return classes.filter(Boolean).join(' ');
+};
 
 const Navbar = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
   
-  // Use useEffect to fix hydration issues
+  // Set client-side rendering flag
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // รีเซ็ตเมนูเมื่อสถานะการเข้าสู่ระบบเปลี่ยนแปลง
+  // Handle navbar visibility on scroll
   useEffect(() => {
-    setIsMenuOpen(false);
-  }, [status]);
-
-  // เพิ่ม effect สำหรับการจัดการการแสดง Navbar เมื่อ scroll
-  useEffect(() => {
-    // ฟังก์ชันจัดการ scroll
     const controlNavbar = () => {
-      if (window.scrollY > 100) { // เริ่มซ่อน/แสดง navbar หลังจากเลื่อนลงมาเกิน 100px
-        if (window.scrollY > lastScrollY) { // เลื่อนลง -> ซ่อน navbar
+      if (window.scrollY > 100) {
+        if (window.scrollY > lastScrollY) {
           setIsVisible(false);
-        } else { // เลื่อนขึ้น -> แสดง navbar
+        } else {
           setIsVisible(true);
         }
       } else {
-        setIsVisible(true); // เมื่ออยู่ใกล้ด้านบนของหน้าเว็บ ให้แสดง navbar เสมอ
+        setIsVisible(true);
       }
       setLastScrollY(window.scrollY);
     };
 
-    // เพิ่ม event listener สำหรับ scroll
     window.addEventListener('scroll', controlNavbar);
-
-    // ลบ event listener เมื่อ component ถูก unmount
     return () => {
       window.removeEventListener('scroll', controlNavbar);
     };
   }, [lastScrollY]);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut({ redirect: false });
-      router.push('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
-  // Define navigation items with proper typing
-  const navItems: NavItem[] = [
-    { 
-      href: '/', 
-      label: 'Home' 
-    },
-    // Show Dashboard only when session is confirmed and user is ADMIN
-    ...(isClient && status === 'authenticated' && session?.user?.role === 'ADMIN' ? [{
-      href: '/dashboard',
-      label: 'Dashboard',
-      requireAuth: true,
-      requireAdmin: true,
-    }] : [])
-  ];
-
+  // Click outside to close menus
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
+        setIsMobileMenuOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
       }
     };
 
@@ -105,9 +73,31 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const toggleSubmenu = (href: string) => {
-    setOpenSubmenu(openSubmenu === href ? null : href);
+  const handleSignOut = async () => {
+    try {
+      await signOut({ redirect: false });
+      router.push('/');
+      setIsProfileOpen(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
+
+  // Navigation items
+  const navItems: NavItem[] = [
+    { 
+      href: '/', 
+      label: 'Home',
+      icon: <Home className="h-5 w-5" />
+    },
+    ...(isClient && status === 'authenticated' && session?.user?.role === 'ADMIN' ? [{
+      href: '/dashboard',
+      label: 'Dashboard',
+      icon: <LayoutDashboard className="h-5 w-5" />,
+      requireAuth: true,
+      requireAdmin: true,
+    }] : [])
+  ];
 
   const shouldShowNavItem = (item: NavItem): boolean => {
     if (!isClient) return true;
@@ -116,318 +106,264 @@ const Navbar = () => {
     return true;
   };
 
-  const renderNavItem = (item: NavItem) => {
-    if (!shouldShowNavItem(item)) return null;
+  // Skip rendering the navbar on dashboard pages
+  if (pathname?.startsWith('/dashboard')) {
+    return null;
+  }
 
-    if (item.subItems && item.subItems.length > 0) {
-      return (
-        <div key={item.href} className="relative">
-          <button
-            onClick={() => toggleSubmenu(item.href)}
-            className="inline-flex items-center space-x-1 text-gray-700 hover:text-orange-600 transition-colors"
-          >
-            <span>{item.label}</span>
-            <IoIosArrowDown 
-              className={`w-4 h-4 transition-transform duration-200 ${
-                openSubmenu === item.href ? 'rotate-180' : ''
-              }`} 
-            />
-          </button>
-
-          {openSubmenu === item.href && (
-            <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-100">
-              {item.subItems.map((subItem) => (
+  return (
+    <nav className={cn(
+      "fixed w-full top-0 z-[999] bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm transition-transform duration-300",
+      isVisible ? "translate-y-0" : "-translate-y-full"
+    )}>
+      <div className="max-w-7xl mx-auto px-4 lg:px-8">
+        <div className="flex justify-between h-16">
+          {/* Logo and Desktop Navigation */}
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-md">
+                <MapPin className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-lg font-bold text-gray-900 leading-none">SDN Map-Portal</span>
+              </div>
+            </Link>
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center ml-8 space-x-8">
+              {navItems.filter(shouldShowNavItem).map((item) => (
                 <Link
-                  key={subItem.href}
-                  href={subItem.href}
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
-                  onClick={() => setOpenSubmenu(null)}
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center text-sm font-medium transition-colors",
+                    pathname === item.href 
+                      ? "text-orange-600" 
+                      : "text-gray-700 hover:text-orange-600"
+                  )}
                 >
-                  {subItem.label}
+                  {item.label}
                 </Link>
               ))}
             </div>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <Link
-        key={item.href}
-        href={item.href}
-        className={`${
-          pathname === item.href ? 'text-orange-600' : 'text-gray-700'
-        } hover:text-orange-600 transition-colors`}
-      >
-        {item.label}
-      </Link>
-    );
-  };
-
-  return (
-    <nav className={`fixed w-full top-0  bg-white/80 backdrop-blur-sm border-b border-gray-100 transition-transform duration-300 
-      ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:ml-64">
-        {" "}
-        {/* เพิ่ม ml-64 เฉพาะบนหน้าจอขนาดใหญ่ */}
-        <div className="flex justify-between h-14">
-          {/* Logo */}
-          <div className="flex-shrink-0 flex items-center">
-          {isClient ? (
-            <Link href="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-orange-600 hidden sm:inline">SDN</span>
-              <span className="text-2xl font-normal text-gray-700 hidden sm:inline">
-                Map Portal
-              </span>
-            </Link>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-orange-600 hidden sm:inline">SDN</span>
-              <span className="text-2xl font-normal text-gray-700 hidden sm:inline">
-                Map Portal
-              </span>
-            </div>
-          )}
-        </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => renderNavItem(item))}
           </div>
 
-          {/* Auth Section */}
-          <div className="flex items-center space-x-4">
+          {/* Right side actions */}
+          <div className="flex items-center">
+            {/* Profile Section */}
             {isClient && status === "authenticated" && session ? (
-              <div className="relative" ref={menuRef}>
-                <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center space-x-2 group"
-                >
-                  <div className="w-10 h-10 rounded-full ring-2 ring-gray-200 overflow-hidden">
-                    {session.user?.image ? (
-                      <img
-                        src={session.user.image}
-                        alt="Profile"
-                        className="rounded-full object-cover w-full h-full"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-600">
-                          {session.user?.lastName?.[0] ||
-                            session.user?.firstName?.[0] ||
-                            "?"}
-                        </span>
+            <div className="relative hidden md:block" ref={profileRef}>
+              <button
+                className="flex items-center space-x-2 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white overflow-hidden">
+                  {session.user?.image ? (
+                    <img
+                      src={session.user.image}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>
+                      {session.user?.lastName?.[0] || session.user?.firstName?.[0] || "?"}
+                    </span>
+                  )}
+                </div>
+                <ChevronDown className="h-4 w-4 text-gray-600" />
+              </button>
+
+                {/* Profile Dropdown - Fixed Overlay Style */}
+                {isProfileOpen && (
+                  <div className="fixed inset-0 z-[1000] bg-black/5 backdrop-blur-sm" onClick={() => setIsProfileOpen(false)}>
+                    <div 
+                      className="absolute right-4 top-16 w-64 bg-white rounded-lg shadow-xl py-2 border border-gray-100"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900">
+                          {session.user?.firstName} {session.user?.lastName}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1 truncate">
+                          {session.user?.email}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                  <IoIosArrowDown className="w-4 h-4 text-gray-600 group-hover:text-orange-600 transition-colors" />
-                </button>
-
-                {/* User menu dropdown - เมนูจะแสดงเฉพาะเมื่อคลิกเท่านั้น (isMenuOpen === true) */}
-                {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl py-2 border border-gray-100 z-50">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">
-                        {session.user?.firstName} {session.user?.lastName}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1 truncate">
-                        {session.user?.email}
-                      </p>
-                    </div>
-
-                    <div className="py-1">
-                      <Link
-                        href="/dashboard/profile"
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <FiUser className="mr-3 h-4 w-4" />
-                        Profile
-                      </Link>
-                    </div>
-
-                    <div className="py-1 border-t border-gray-100">
-                      <button
-                        onClick={handleSignOut}
-                        className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
-                      >
-                        <FiLogOut className="mr-3 h-4 w-4" />
-                        Sign out
-                      </button>
+                      
+                      <div className="py-1">
+                        <Link
+                          href="/dashboard/profile"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <User className="mr-3 h-4 w-4" />
+                          โปรไฟล์
+                        </Link>
+                        
+                        <Link
+                          href="/dashboard/settings"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <Settings className="mr-3 h-4 w-4" />
+                          ตั้งค่า
+                        </Link>
+                      </div>
+                      
+                      <div className="py-1 border-t border-gray-100">
+                        <button
+                          onClick={handleSignOut}
+                          className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <LogOut className="mr-3 h-4 w-4" />
+                          ออกจากระบบ
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
-            ) : isClient === false || status === "loading" ? (
-              // Show loading indicator while checking session
-              <div className="w-6 h-6 border-2 border-gray-200 border-t-orange-500 rounded-full animate-spin"></div>
-            ) : (
-              // Hide sign in/sign up buttons on small screens, show only on larger screens
+            ) : isClient && status === "unauthenticated" ? (
               <div className="hidden md:flex items-center space-x-4">
-                <Link
+                <Link 
                   href="/auth/signin"
-                  className="text-gray-700 text-sm font-medium hover:text-orange-600 transition-colors flex items-center"
+                  className="text-sm font-medium text-gray-700 hover:text-orange-600 transition-colors"
                 >
-                  Sign in
+                  เข้าสู่ระบบ
                 </Link>
-                <Link
+                <Link 
                   href="/auth/signup"
-                  className="flex items-center gap-2 bg-black text-white text-sm font-medium px-4 py-1.5 rounded-full hover:bg-gray-800 transition-colors"
+                  className="text-sm font-medium bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors"
                 >
-                  <span className="inline-flex items-center justify-center w-3.5 h-3.5">
-                    <svg
-                      stroke="currentColor"
-                      fill="none"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      height="1em"
-                      width="1em"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                  </span>
-                  <span>Sign up</span>
+                  สมัครสมาชิก
                 </Link>
               </div>
-            )}
+            ) : isClient === false || status === "loading" ? (
+              <div className="w-6 h-6 border-2 border-gray-200 border-t-orange-500 rounded-full animate-spin"></div>
+            ) : null}
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-md hover:bg-gray-100/30 transition-colors"
-            >
-              <HiMenuAlt3 className="h-6 w-6 text-gray-600" />
-            </button>
+            {/* Mobile Menu Button - แสดงเฉพาะบนหน้าจอขนาดเล็ก */}
+            <div className="md:hidden ml-4" ref={menuRef}>
+              <button 
+                className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Main menu"
+              >
+                <Menu className="h-5 w-5 text-gray-600" />
+              </button>
+
+              {/* Mobile Menu - แสดงแบบ dropdown เหมือนกับเมนู Profile */}
+              {isMobileMenuOpen && (
+                <div className="fixed inset-0 z-[1000] bg-black/5 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}>
+                  <div 
+                    className="absolute right-4 top-16 w-64 bg-white rounded-lg shadow-xl py-2 border border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        เมนูหลัก
+                      </p>
+                    </div>
+                    
+                    {navItems.filter(shouldShowNavItem).map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600",
+                          pathname === item.href ? "bg-orange-50/50 text-orange-600" : ""
+                        )}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <div className="mr-3 text-gray-500">{item.icon}</div>
+                        {item.label}
+                      </Link>
+                    ))}
+                    
+                    {/* Profile section if authenticated */}
+                    {isClient && status === "authenticated" && session ? (
+                      <div className="pt-2 pb-2 border-t border-gray-100 mt-2">
+                        <div className="px-4 py-2">
+                          <div className="flex items-center mb-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white overflow-hidden mr-2">
+                              {session.user?.image ? (
+                                <img
+                                  src={session.user.image}
+                                  alt="Profile"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span>
+                                  {session.user?.lastName?.[0] || session.user?.firstName?.[0] || "?"}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {session.user?.firstName} {session.user?.lastName}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {session.user?.email}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <Link
+                            href="/dashboard/profile"
+                            className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 rounded-md"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            โปรไฟล์
+                          </Link>
+                          
+                          <Link
+                            href="/dashboard/settings"
+                            className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 rounded-md mt-1"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <Settings className="mr-2 h-4 w-4" />
+                            ตั้งค่า
+                          </Link>
+                          
+                          <button
+                            onClick={() => {
+                              handleSignOut();
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md mt-1"
+                          >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            ออกจากระบบ
+                          </button>
+                        </div>
+                      </div>
+                    ) : isClient && status === "unauthenticated" ? (
+                      <div className="pt-2 pb-2 border-t border-gray-100 mt-2">
+                        <div className="flex flex-col space-y-2 px-3">
+                          <Link
+                            href="/auth/signin"
+                            className="w-full py-2 px-3 rounded-md text-center text-gray-700 bg-gray-50 hover:bg-gray-100"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            เข้าสู่ระบบ
+                          </Link>
+                          <Link
+                            href="/auth/signup"
+                            className="w-full py-2 px-3 rounded-md text-center bg-orange-600 text-white hover:bg-orange-700"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            สมัครสมาชิก
+                          </Link>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Mobile Menu - Single implementation with improved styling */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-white/90 backdrop-blur-sm border-t border-gray-100/30">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            {navItems.filter(shouldShowNavItem).map((item) => (
-              <div key={item.href}>
-                {item.subItems && item.subItems.length > 0 ? (
-                  <div>
-                    <button
-                      onClick={() => toggleSubmenu(item.href)}
-                      className="w-full flex items-center justify-between px-3 py-2 text-base text-gray-700 hover:bg-gray-50/50 transition-colors"
-                    >
-                      <span>{item.label}</span>
-                      <IoIosArrowDown
-                        className={`
-                        w-4 h-4 transition-transform duration-200
-                        ${openSubmenu === item.href ? "rotate-180" : ""}
-                      `}
-                      />
-                    </button>
-
-                    {openSubmenu === item.href && (
-                      <div className="bg-gray-50/50">
-                        {item.subItems.map((subItem) => (
-                          <Link
-                            key={subItem.href}
-                            href={subItem.href}
-                            className="block pl-6 pr-4 py-2 text-base text-gray-700 hover:bg-orange-50/50 hover:text-orange-600 transition-colors"
-                            onClick={() => {
-                              setOpenSubmenu(null);
-                              setIsMobileMenuOpen(false);
-                            }}
-                          >
-                            {subItem.label}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Link
-                    href={item.href}
-                    className={`
-                      block px-3 py-2 text-base text-gray-700 hover:bg-gray-50/50 transition-colors
-                      ${pathname === item.href ? "text-orange-600" : ""}
-                    `}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                )}
-              </div>
-            ))}
-
-            {/* Always show auth options in mobile menu */}
-            {isClient && status === "authenticated" ? (
-              <div className="pt-4 pb-2 border-t border-gray-200/30">
-                <div className="space-y-1">
-                  <Link
-                    href="/dashboard/profile"
-                    className="flex items-center px-3 py-2 text-base text-gray-700 hover:bg-gray-50/50"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <FiUser className="mr-3 h-5 w-5" />
-                    Profile
-                  </Link>
-
-                  <button
-                    onClick={() => {
-                      handleSignOut();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex w-full items-center px-3 py-2 text-base text-gray-700 hover:bg-gray-50/50"
-                  >
-                    <FiLogOut className="mr-3 h-5 w-5" />
-                    Sign out
-                  </button>
-                </div>
-              </div>
-            ) : isClient && status !== "authenticated" ? (
-              <div className="pt-4 pb-2 border-t border-gray-200/30">
-                <div className="flex flex-col space-y-2 px-3">
-                  <Link
-                    href="/auth/signin"
-                    className="text-center text-gray-700 py-2 hover:text-orange-600 transition-colors font-medium"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Sign in
-                  </Link>
-                  <Link
-                    href="/auth/signup"
-                    className="flex items-center justify-center gap-1 bg-black text-white font-medium py-2 rounded-full hover:bg-gray-800 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <span className="inline-flex items-center justify-center w-4 h-4">
-                      <svg
-                        stroke="currentColor"
-                        fill="none"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        height="1em"
-                        width="1em"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                      </svg>
-                    </span>
-                    <span>Sign up</span>
-                  </Link>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      )}
-
-      {/* เพิ่ม padding-top เพื่อชดเชยความสูงของ Navbar ที่ fixed แล้ว */}
-      <div className="14"></div>
     </nav>
   );
 };
