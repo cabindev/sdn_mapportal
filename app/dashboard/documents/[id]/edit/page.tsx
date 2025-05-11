@@ -1,3 +1,4 @@
+//app/dashboard/documents/[id]/edit/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getDocument } from '@/app/lib/actions/documents/get'
