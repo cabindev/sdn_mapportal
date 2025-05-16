@@ -24,6 +24,11 @@ const nextConfig = {
         hostname: '*.googleapis.com',
         pathname: '/**',
       },
+            {
+        protocol: 'https',
+        hostname: '*.google.com',
+        pathname: '/**',
+      },
     ],
   },
 }
