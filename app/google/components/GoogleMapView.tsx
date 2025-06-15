@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GoogleMap, LoadScript, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import { DocumentWithCategory } from '@/app/types/document';
 import { getCategoryColor } from '@/app/utils/colorGenerator';
 
@@ -22,7 +22,6 @@ const mapOptions = {
   mapTypeControl: true,
   fullscreenControl: true,
   zoomControl: true,
-  mapId: 'DEMO_MAP_ID', // เพิ่มสำหรับ AdvancedMarkerElement
   styles: [
     {
       featureType: "administrative.province",
@@ -37,9 +36,6 @@ const mapOptions = {
   ]
 };
 
-// Libraries ที่ต้องการ
-const libraries: ("places" | "geometry" | "drawing" | "visualization" | "marker")[] = ["marker"];
-
 interface GoogleMapViewProps {
   documents: DocumentWithCategory[];
   onMapLoad?: (map: google.maps.Map) => void;
@@ -51,89 +47,22 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
   
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  // ใช้ API Key โดยตรง (fallback ไปยัง env)
+  const apiKey = "AIzaSyCAhQGDXx-VOnmLycJ3NZhP-6EHSps7iIY";
   
-  // Debug API Key
-  console.log('🔑 API Key length:', apiKey.length);
-  console.log('🔑 API Key starts with AIza:', apiKey.startsWith('AIza'));
+  console.log('🔑 Using API Key:', apiKey.substring(0, 20) + '...');
   
-  // ตรวจสอบ API Key
-  if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
-    return (
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <div className="text-center py-8">
-          <div className="text-red-500 mb-2">❌ ไม่พบ API Key</div>
-          <p className="text-gray-600">กรุณาตั้งค่า NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ใน .env.local</p>
-        </div>
-      </div>
-    );
-  }
-
   // เก็บ reference ของแผนที่เมื่อโหลดเสร็จ
   const handleMapLoad = useCallback((map: google.maps.Map) => {
     setMap(map);
     setIsLoaded(true);
     console.log('✅ Google Maps โหลดสำเร็จ');
     
-    // สร้าง Advanced Markers
-    if (window.google && window.google.maps && window.google.maps.marker) {
-      createAdvancedMarkers(map);
-    }
-    
     if (onMapLoad) {
       onMapLoad(map);
     }
-  }, [onMapLoad, documents]);
-
-  // สร้าง Advanced Markers
-  const createAdvancedMarkers = useCallback((map: google.maps.Map) => {
-    // ลบ markers เก่า
-    markersRef.current.forEach(marker => {
-      if (marker.map) {
-        marker.map = null;
-      }
-    });
-    markersRef.current = [];
-
-    // สร้าง markers ใหม่
-    documents.forEach(doc => {
-      const colorScheme = getCategoryColor(doc.categoryId);
-      
-      // สร้าง custom marker element
-      const markerDiv = document.createElement('div');
-      markerDiv.innerHTML = `
-        <div style="
-          position: relative;
-          width: 30px;
-          height: 36px;
-          cursor: pointer;
-        ">
-          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="36" viewBox="0 0 24 36">
-            <path fill="${colorScheme.primary}" stroke="white" stroke-width="2" 
-                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
-        </div>
-      `;
-
-      // สร้าง AdvancedMarkerElement
-      const marker = new google.maps.marker.AdvancedMarkerElement({
-        map,
-        position: { lat: doc.latitude, lng: doc.longitude },
-        content: markerDiv,
-        title: doc.title,
-      });
-
-      // เพิ่ม click event
-      marker.addListener('click', () => {
-        setSelectedDoc(doc);
-        setExpandedInfo(false);
-      });
-
-      markersRef.current.push(marker);
-    });
-  }, [documents]);
+  }, [onMapLoad]);
 
   // Handle map error
   const handleMapError = (error: any) => {
@@ -176,8 +105,7 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
       <h2 className="text-xl font-semibold text-gray-800 mb-4">แผนที่เอกสารด้วย Google Maps</h2>
       
       <LoadScript 
-        googleMapsApiKey={apiKey} 
-        libraries={libraries}
+        googleMapsApiKey={apiKey}
         version="weekly"
         onLoad={() => {
           console.log('✅ LoadScript โหลดสำเร็จ');
@@ -189,6 +117,7 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-2"></div>
               <p className="text-gray-600">กำลังโหลดแผนที่...</p>
+              <p className="text-sm text-gray-500 mt-1">อาจใช้เวลาสักครู่</p>
             </div>
           </div>
         }
@@ -200,6 +129,27 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
           onLoad={handleMapLoad}
           options={mapOptions}
         >
+          {/* Markers */}
+          {isLoaded && documents.map(doc => {
+            const colorScheme = getCategoryColor(doc.categoryId);
+            return (
+              <Marker 
+                key={doc.id}
+                position={{ lat: doc.latitude, lng: doc.longitude }}
+                onClick={() => {
+                  setSelectedDoc(doc);
+                  setExpandedInfo(false);
+                }}
+                icon={{
+                  url: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 24 36"><path fill="${encodeURIComponent(colorScheme.primary)}" stroke="white" stroke-width="2" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
+                  scaledSize: new google.maps.Size(30, 36),
+                  anchor: new google.maps.Point(15, 36)
+                }}
+                title={doc.title}
+              />
+            );
+          })}
+          
           {/* InfoWindow */}
           {selectedDoc && (
             <InfoWindow
