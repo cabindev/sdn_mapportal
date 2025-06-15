@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, InfoWindow } from '@react-google-maps/api';
 import { DocumentWithCategory } from '@/app/types/document';
 import { getCategoryColor } from '@/app/utils/colorGenerator';
 
@@ -22,6 +22,7 @@ const mapOptions = {
   mapTypeControl: true,
   fullscreenControl: true,
   zoomControl: true,
+  mapId: 'DEMO_MAP_ID', // เพิ่มสำหรับ AdvancedMarkerElement
   styles: [
     {
       featureType: "administrative.province",
@@ -36,6 +37,9 @@ const mapOptions = {
   ]
 };
 
+// Libraries ที่ต้องการ
+const libraries: ("places" | "geometry" | "drawing" | "visualization" | "marker")[] = ["marker"];
+
 interface GoogleMapViewProps {
   documents: DocumentWithCategory[];
   onMapLoad?: (map: google.maps.Map) => void;
@@ -46,16 +50,96 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
   const [expandedInfo, setExpandedInfo] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   
+  // Debug API Key
+  console.log('🔑 API Key length:', apiKey.length);
+  console.log('🔑 API Key starts with AIza:', apiKey.startsWith('AIza'));
+  
+  // ตรวจสอบ API Key
+  if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <div className="text-center py-8">
+          <div className="text-red-500 mb-2">❌ ไม่พบ API Key</div>
+          <p className="text-gray-600">กรุณาตั้งค่า NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ใน .env.local</p>
+        </div>
+      </div>
+    );
+  }
+
   // เก็บ reference ของแผนที่เมื่อโหลดเสร็จ
   const handleMapLoad = useCallback((map: google.maps.Map) => {
     setMap(map);
     setIsLoaded(true);
+    console.log('✅ Google Maps โหลดสำเร็จ');
+    
+    // สร้าง Advanced Markers
+    if (window.google && window.google.maps && window.google.maps.marker) {
+      createAdvancedMarkers(map);
+    }
+    
     if (onMapLoad) {
       onMapLoad(map);
     }
-  }, [onMapLoad]);
+  }, [onMapLoad, documents]);
+
+  // สร้าง Advanced Markers
+  const createAdvancedMarkers = useCallback((map: google.maps.Map) => {
+    // ลบ markers เก่า
+    markersRef.current.forEach(marker => {
+      if (marker.map) {
+        marker.map = null;
+      }
+    });
+    markersRef.current = [];
+
+    // สร้าง markers ใหม่
+    documents.forEach(doc => {
+      const colorScheme = getCategoryColor(doc.categoryId);
+      
+      // สร้าง custom marker element
+      const markerDiv = document.createElement('div');
+      markerDiv.innerHTML = `
+        <div style="
+          position: relative;
+          width: 30px;
+          height: 36px;
+          cursor: pointer;
+        ">
+          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="36" viewBox="0 0 24 36">
+            <path fill="${colorScheme.primary}" stroke="white" stroke-width="2" 
+                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+        </div>
+      `;
+
+      // สร้าง AdvancedMarkerElement
+      const marker = new google.maps.marker.AdvancedMarkerElement({
+        map,
+        position: { lat: doc.latitude, lng: doc.longitude },
+        content: markerDiv,
+        title: doc.title,
+      });
+
+      // เพิ่ม click event
+      marker.addListener('click', () => {
+        setSelectedDoc(doc);
+        setExpandedInfo(false);
+      });
+
+      markersRef.current.push(marker);
+    });
+  }, [documents]);
+
+  // Handle map error
+  const handleMapError = (error: any) => {
+    console.error('❌ Google Maps Error:', error);
+    setMapError('ไม่สามารถโหลดแผนที่ได้ กรุณาลองใหม่อีกครั้ง');
+  };
 
   // ขยายหน้าต่าง InfoWindow
   const toggleExpandInfo = (e: React.MouseEvent) => {
@@ -69,11 +153,46 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
     setExpandedInfo(false);
   };
 
+  // แสดง error state
+  if (mapError) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <div className="text-center py-8">
+          <div className="text-red-500 mb-2">เกิดข้อผิดพลาด</div>
+          <p className="text-gray-600">{mapError}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+          >
+            โหลดใหม่
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg relative">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">แผนที่เอกสารด้วย Google Maps</h2>
       
-      <LoadScript googleMapsApiKey={apiKey} onLoad={() => setIsLoaded(true)}>
+      <LoadScript 
+        googleMapsApiKey={apiKey} 
+        libraries={libraries}
+        version="weekly"
+        onLoad={() => {
+          console.log('✅ LoadScript โหลดสำเร็จ');
+          setIsLoaded(true);
+        }}
+        onError={handleMapError}
+        loadingElement={
+          <div className="h-[600px] bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-2"></div>
+              <p className="text-gray-600">กำลังโหลดแผนที่...</p>
+            </div>
+          </div>
+        }
+      >
         <GoogleMap
           mapContainerStyle={containerStyle}
           center={center}
@@ -81,30 +200,14 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
           onLoad={handleMapLoad}
           options={mapOptions}
         >
-          {isLoaded && documents.map(doc => {
-            const colorScheme = getCategoryColor(doc.categoryId);
-            return (
-              <Marker 
-                key={doc.id}
-                position={{ lat: doc.latitude, lng: doc.longitude }}
-                onClick={() => setSelectedDoc(doc)}
-                icon={{
-                  url: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 24 36"><path fill="${encodeURIComponent(colorScheme.primary)}" stroke="white" stroke-width="1" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
-                  scaledSize: isLoaded ? new window.google.maps.Size(30, 36) : undefined,
-                  anchor: isLoaded ? new window.google.maps.Point(15, 36) : undefined
-                }}
-                animation={google.maps.Animation.DROP}
-              />
-            );
-          })}
-          
+          {/* InfoWindow */}
           {selectedDoc && (
             <InfoWindow
               position={{ lat: selectedDoc.latitude, lng: selectedDoc.longitude }}
               onCloseClick={handleCloseInfoWindow}
               options={{
                 maxWidth: expandedInfo ? 500 : 320,
-                pixelOffset: isLoaded ? new window.google.maps.Size(0, -36) : undefined
+                pixelOffset: new google.maps.Size(0, -40)
               }}
             >
               <div className={`font-sans transition-all duration-300 ${expandedInfo ? 'max-w-[480px]' : 'max-w-xs'}`}>
@@ -185,7 +288,7 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
                     {selectedDoc.year && (
                       <div className="flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
                         </svg>
                         <span className={expandedInfo ? 'text-sm' : 'text-xs'}>
                           ปี พ.ศ. {selectedDoc.year}
