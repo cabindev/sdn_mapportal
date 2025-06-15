@@ -13,6 +13,7 @@ export default async function GoogleMapsPage() {
     getPublishedDocuments()
   ])
 
+
   // จัดกลุ่มเอกสารตามจังหวัด
   const provinceGroups = documents.reduce((acc, doc) => {
     if (!acc[doc.province]) {
@@ -43,7 +44,7 @@ export default async function GoogleMapsPage() {
         </div>
       </div>
 
-      {/* Stats Summary */}
+      {/* Stats Summary สถิติ*/}
       <div className="container mx-auto px-4 -mt-6 mb-8 relative z-10">
         <div className="bg-white rounded-xl shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center p-4 border-b md:border-b-0 md:border-r border-gray-100">
