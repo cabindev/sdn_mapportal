@@ -1,7 +1,7 @@
 // app/google/components/GoogleMapView.tsx
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import { DocumentWithCategory } from '@/app/types/document';
 import { getCategoryColor } from '@/app/utils/colorGenerator';
@@ -42,43 +42,40 @@ interface GoogleMapViewProps {
 }
 
 export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewProps) {
+  // ✅ ประกาศ hooks ทั้งหมดในลำดับที่เหมือนกันเสมอ
   const [selectedDoc, setSelectedDoc] = useState<DocumentWithCategory | null>(null);
   const [expandedInfo, setExpandedInfo] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string>('');
+  const [isLoadingKey, setIsLoadingKey] = useState(true);
 
-  // ✅ ใช้ environment variable เท่านั้น - ปลอดภัย
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-  
-  // Debug information (ไม่เปิดเผย API Key)
-  console.log('🔑 API Key found:', !!apiKey);
-  console.log('🔑 API Key length:', apiKey.length);
-  console.log('🔑 Environment type:', typeof window !== 'undefined' ? 'Client' : 'Server');
-  
-  // ตรวจสอบ API Key
-  if (!apiKey) {
-    return (
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <div className="text-center py-8">
-          <div className="text-red-500 mb-2">❌ ไม่พบ API Key</div>
-          <p className="text-gray-600">กรุณาตั้งค่า NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</p>
-          <div className="mt-4 p-4 bg-gray-100 rounded-lg text-left text-sm">
-            <h4 className="font-medium mb-2">วิธีแก้ไขสำหรับ Plesk:</h4>
-            <ol className="list-decimal list-inside space-y-1 text-gray-600">
-              <li>ไปที่ Plesk Control Panel</li>
-              <li>เลือก Node.js  Custom environment variables</li>
-              <li>เพิ่ม: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</li>
-              <li>ใส่ค่า API Key</li>
-              <li>กด Save และ Restart App</li>
-            </ol>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  // เก็บ reference ของแผนที่เมื่อโหลดเสร็จ
+  // ✅ useEffect ต้องอยู่หลัง useState เสมอ
+  useEffect(() => {
+    const fetchApiKey = async () => {
+      try {
+        const response = await fetch('/api/google-maps');
+        if (response.ok) {
+          const data = await response.json();
+          setApiKey(data.apiKey);
+          console.log('✅ Google Maps API Key loaded successfully');
+        } else {
+          console.error('❌ Failed to fetch Google Maps API Key');
+          setMapError('ไม่สามารถโหลด Google Maps API Key ได้');
+        }
+      } catch (error) {
+        console.error('❌ Error fetching API Key:', error);
+        setMapError('เกิดข้อผิดพลาดในการโหลด API Key');
+      } finally {
+        setIsLoadingKey(false);
+      }
+    };
+
+    fetchApiKey();
+  }, []);
+
+  // ✅ useCallback ต้องอยู่หลัง useEffect เสมอ
   const handleMapLoad = useCallback((map: google.maps.Map) => {
     setMap(map);
     setIsLoaded(true);
@@ -89,25 +86,59 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
     }
   }, [onMapLoad]);
 
-  // Handle map error
-  const handleMapError = (error: any) => {
+  const handleMapError = useCallback((error: any) => {
     console.error('❌ Google Maps Error:', error);
     setMapError('ไม่สามารถโหลดแผนที่ได้ กรุณาลองใหม่อีกครั้ง');
-  };
+  }, []);
 
-  // ขยายหน้าต่าง InfoWindow
-  const toggleExpandInfo = (e: React.MouseEvent) => {
+  const toggleExpandInfo = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setExpandedInfo(!expandedInfo);
-  };
+  }, [expandedInfo]);
   
-  // ปิด InfoWindow และรีเซ็ตสถานะ
-  const handleCloseInfoWindow = () => {
+  const handleCloseInfoWindow = useCallback(() => {
     setSelectedDoc(null);
     setExpandedInfo(false);
-  };
+  }, []);
 
-  // แสดง error state
+  // Debug information
+  console.log('🔑 API Key found:', !!apiKey);
+  console.log('🔑 API Key length:', apiKey.length);
+  console.log('🔑 Loading state:', isLoadingKey);
+  
+  // ✅ Early returns หลังจาก hooks ทั้งหมด
+  if (isLoadingKey) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-2"></div>
+          <p className="text-gray-600">กำลังโหลด Google Maps API...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!apiKey) {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <div className="text-center py-8">
+          <div className="text-red-500 mb-2">❌ ไม่พบ API Key</div>
+          <p className="text-gray-600">ไม่สามารถโหลด Google Maps API Key ได้</p>
+          <div className="mt-4 p-4 bg-gray-100 rounded-lg text-left text-sm">
+            <h4 className="font-medium mb-2">วิธีแก้ไขสำหรับ Plesk:</h4>
+            <ol className="list-decimal list-inside space-y-1 text-gray-600">
+              <li>ไปที่ Plesk Control Panel</li>
+              <li>เลือก Node.js {`>`} Custom environment variables</li>
+              <li>เพิ่ม: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</li>
+              <li>ใส่ค่า API Key</li>
+              <li>กด Save และ Restart App</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (mapError) {
     return (
       <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -213,20 +244,6 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
                     </button>
                   </div>
                   
-                  {/* ส่วนแสดงรูปภาพ */}
-                  {selectedDoc.coverImage && (
-                    <div className={`mb-3 rounded-lg overflow-hidden w-full shadow-sm ${expandedInfo ? 'h-56' : 'h-40'}`}>
-                      <img 
-                        src={selectedDoc.coverImage}
-                        alt={selectedDoc.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                  
                   {/* หัวข้อเอกสาร */}
                   <h3 className={`font-medium text-gray-800 mb-2 ${expandedInfo ? 'text-xl' : 'text-lg'}`}>
                     {selectedDoc.title}
@@ -234,72 +251,17 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
                   
                   {/* คำอธิบาย */}
                   <div className="mb-3">
-                    <p className={`text-gray-600 ${expandedInfo ? 'text-base' : 'text-sm'} ${!expandedInfo ? 'line-clamp-3' : ''}`}>
+                    <p className={`text-gray-600 ${expandedInfo ? 'text-base' : 'text-sm'}`}>
                       {selectedDoc.description}
                     </p>
-                    
-                    {!expandedInfo && selectedDoc.description.length > 150 && (
-                      <button
-                        className="text-xs font-medium text-orange-500 hover:text-orange-600 mt-1 transition"
-                        onClick={toggleExpandInfo}
-                      >
-                        อ่านเพิ่มเติม...
-                      </button>
-                    )}
                   </div>
                   
                   {/* ข้อมูลพื้นที่ */}
                   <div className="bg-gray-50 p-3 rounded-md mb-3 text-xs">
-                    <div className="flex flex-wrap items-center mb-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span className={expandedInfo ? 'text-sm' : 'text-xs'}>
-                        {selectedDoc.district}, {selectedDoc.amphoe}, {selectedDoc.province}
-                      </span>
-                    </div>
-                    
-                    {selectedDoc.year && (
-                      <div className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
-                        </svg>
-                        <span className={expandedInfo ? 'text-sm' : 'text-xs'}>
-                          ปี พ.ศ. {selectedDoc.year}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {expandedInfo && (
-                      <div className="flex items-center mt-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-sm">
-                          อัปเดตล่าสุด: {new Date(selectedDoc.updatedAt).toLocaleDateString('th-TH', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </span>
-                      </div>
-                    )}
+                    <span className="text-sm">
+                      {selectedDoc.district}, {selectedDoc.amphoe}, {selectedDoc.province}
+                    </span>
                   </div>
-                  
-                  {/* ส่วนสถิติการเข้าชม - แสดงเฉพาะเมื่อขยาย */}
-                  {expandedInfo && (
-                    <div className="grid grid-cols-2 gap-2 mb-4">
-                      <div className="bg-blue-50 rounded-md p-2 flex flex-col items-center">
-                        <div className="text-sm text-blue-700">การเข้าชม</div>
-                        <div className="text-xl font-semibold text-blue-800">{selectedDoc.viewCount}</div>
-                      </div>
-                      <div className="bg-green-50 rounded-md p-2 flex flex-col items-center">
-                        <div className="text-sm text-green-700">ดาวน์โหลด</div>
-                        <div className="text-xl font-semibold text-green-800">{selectedDoc.downloadCount}</div>
-                      </div>
-                    </div>
-                  )}
                   
                   {/* ปุ่มดูเอกสาร */}
                   <div className="flex gap-2 mt-2">
@@ -311,42 +273,7 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
                     >
                       เปิดดูเอกสาร
                     </a>
-                    <a 
-                      href={`${selectedDoc.filePath}?download=true`}
-                      download
-                      className="flex items-center justify-center px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </a>
                   </div>
-                  
-                  {/* ส่วนล่างแสดงสถิติเมื่อไม่ขยาย */}
-                  {!expandedInfo && (
-                    <div className="flex text-xs text-gray-500 mt-3 pt-2 border-t border-gray-100">
-                      <div className="flex items-center mr-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        {selectedDoc.viewCount} ครั้ง
-                      </div>
-                      <div className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        {selectedDoc.downloadCount} ดาวน์โหลด
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* คำแนะนำ - แสดงเฉพาะเมื่อขยาย */}
-                  {expandedInfo && (
-                    <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 text-center">
-                      คลิกที่ลูกศรด้านบนเพื่อย่อข้อมูล
-                    </div>
-                  )}
                 </div>
               </div>
             </InfoWindow>
