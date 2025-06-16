@@ -67,7 +67,7 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
             <h4 className="font-medium mb-2">วิธีแก้ไขสำหรับ Plesk:</h4>
             <ol className="list-decimal list-inside space-y-1 text-gray-600">
               <li>ไปที่ Plesk Control Panel</li>
-              <li>เลือก Node.js > Custom environment variables</li>
+              <li>เลือก Node.js  Custom environment variables</li>
               <li>เพิ่ม: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</li>
               <li>ใส่ค่า API Key</li>
               <li>กด Save และ Restart App</li>
