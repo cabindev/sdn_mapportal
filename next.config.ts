@@ -10,7 +10,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false
   },
-
+  // เพิ่ม env สำหรับ Plesk
+  env: {
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+  },
   images: {
     unoptimized: true, // เพิ่มตัวเลือกนี้เพื่อปิดการ optimize ภาพ
     remotePatterns: [
@@ -24,7 +27,7 @@ const nextConfig = {
         hostname: '*.googleapis.com',
         pathname: '/**',
       },
-            {
+      {
         protocol: 'https',
         hostname: '*.google.com',
         pathname: '/**',
