@@ -82,7 +82,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
         {/* Content */}
         <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 192px)' }}>
           {/* Title */}
-          <h3 className="text-xl font-light text-gray-900 mb-4 leading-relaxed">
+          <h3 className="text-xl font-medium text-gray-900 mb-4 leading-relaxed">
             {document.title}
           </h3>
           
@@ -92,7 +92,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
             <div className="flex items-start gap-3 text-sm">
               <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-gray-900 font-light">
+                <div className="text-gray-900 font-medium">
                   {document.district}, {document.amphoe}, {document.province}
                 </div>
                 <div className="text-gray-500 text-xs mt-1">
@@ -104,7 +104,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
             {/* Date */}
             <div className="flex items-center gap-3 text-sm">
               <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <div className="text-gray-900 font-light">
+              <div className="text-gray-900 font-medium">
                 {new Date(document.createdAt).toLocaleDateString('th-TH', {
                   day: 'numeric',
                   month: 'long',
@@ -121,7 +121,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
             {/* Views and Downloads */}
             <div className="flex items-center gap-3 text-sm">
               <Eye className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <div className="text-gray-900 font-light">
+              <div className="text-gray-900 font-medium">
                 ดู {document.viewCount.toLocaleString()} ครั้ง
                 <span className="mx-2 text-gray-300">•</span>
                 ดาวน์โหลด {document.downloadCount.toLocaleString()} ครั้ง
@@ -135,7 +135,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
               <div className="relative">
                 <div 
                   ref={descriptionRef}
-                  className={`text-sm text-gray-600 font-light leading-relaxed ${!isExpanded ? 'line-clamp-4' : ''}`}
+                  className={`text-sm text-gray-600 leading-relaxed ${!isExpanded ? 'line-clamp-4' : ''}`}
                 >
                   {document.description}
                 </div>
@@ -147,7 +147,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
               
               {isOverflowing && (
                 <button 
-                  className="mt-2 text-xs text-gray-500 hover:text-gray-700 transition-colors font-light"
+                  className="mt-2 text-xs text-gray-500 hover:text-gray-700 transition-colors font-medium"
                   onClick={() => setIsExpanded(!isExpanded)}
                 >
                   {isExpanded ? 'แสดงน้อยลง' : 'อ่านเพิ่มเติม'}
@@ -162,7 +162,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
             <a
               href={`${document.filePath}?download=true`}
               download
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-full shadow-lg text-sm font-light transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-full shadow-lg text-sm font-medium transition-colors"
               onClick={() => {
               onDownload();
               }}
