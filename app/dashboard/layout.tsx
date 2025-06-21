@@ -5,6 +5,11 @@ import authOptions from '../lib/configs/auth/authOptions';
 import { DashboardProvider } from './context/DashboardContext';
 import DashboardClient from './components/DashboardClient';
 
+export const metadata = {
+  title: 'Dashboard | SDN Map Portal',
+  description: 'ระบบจัดการข้อมูลแผนที่และเอกสาร',
+}
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -15,12 +20,16 @@ export default async function DashboardLayout({
   if (!session || session.user.role !== 'ADMIN') {
     redirect('/auth/signin?callbackUrl=/dashboard');
   }
-  
+
   return (
-    <DashboardProvider>
-      <DashboardClient user={session.user}>
-        {children}
-      </DashboardClient>
-    </DashboardProvider>
+    <div className="min-h-screen bg-gray-50">
+      <DashboardProvider>
+        <DashboardClient user={session.user}>
+          <div className="relative">
+            {children}
+          </div>
+        </DashboardClient>
+      </DashboardProvider>
+    </div>
   );
 }

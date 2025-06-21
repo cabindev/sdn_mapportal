@@ -1,10 +1,8 @@
-// app/dashboard/components/DashboardClient.tsx
 'use client'
 
 import { useDashboard } from '../context/DashboardContext'
 import Sidebar from './Sidebar'
 import TopNav from './TopNav'
-import { cn } from "../../lib/utils"
 
 interface DashboardClientProps {
   user: any;
@@ -12,20 +10,29 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ user, children }: DashboardClientProps) {
-  const { sidebarCollapsed } = useDashboard();
+  const { sidebarCollapsed, isMobileSidebarOpen, toggleMobileSidebar } = useDashboard();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="min-h-screen bg-neutral-100 flex">
+      {/* Mobile Overlay */}
+      {isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-30 transition-opacity lg:hidden"
+          onClick={() => toggleMobileSidebar(false)}
+        />
+      )}
+
+      {/* Sidebar */}
       <Sidebar user={user} />
-      
-      <div className={cn(
-        "flex-1 flex flex-col transition-all duration-300 w-full",
-        // เปลี่ยนเป็นใช้ margin left เฉพาะบนหน้าจอใหญ่
-        sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
-      )}>
+
+      {/* Main Content */}
+      <div className={`
+        flex-1 min-h-screen flex flex-col transition-all duration-300
+        ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}
+      `}>
         <TopNav user={user} />
-        
-        <main className="flex-1 overflow-y-auto pb-4 px-2">
+
+        <main className="flex-1 p-4 lg:p-8">
           {children}
         </main>
       </div>

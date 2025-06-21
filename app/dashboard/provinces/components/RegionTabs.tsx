@@ -48,9 +48,9 @@ export default function RegionTabs({ provinceName, onRegionChange }: RegionTabsP
             key={region}
             onClick={() => handleTabChange(region)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors
-              ${region === currentZone ? 'border-2 border-blue-500' : ''}
+              ${region === currentZone ? 'border-2 border-gray-500' : ''}
               ${activeTab === region 
-                ? 'bg-blue-600 text-white' 
+                ? 'bg-gray-600 text-white' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
             }
           >

@@ -1,49 +1,51 @@
 // app/dashboard/context/DashboardContext.tsx
 'use client'
 
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState } from 'react'
 
 interface DashboardContextType {
-  sidebarCollapsed: boolean;
-  toggleSidebar: () => void;
-  isMobileSidebarOpen: boolean;
-  toggleMobileSidebar: (isOpen?: boolean) => void;
+  sidebarCollapsed: boolean
+  toggleSidebar: () => void
+  isMobileSidebarOpen: boolean
+  toggleMobileSidebar: (open?: boolean) => void
 }
 
-const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+const DashboardContext = createContext<DashboardContextType | undefined>(undefined)
 
-export function DashboardProvider({ children }: { children: ReactNode }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+export function DashboardProvider({ children }: { children: React.ReactNode }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   const toggleSidebar = () => {
-    setSidebarCollapsed(prev => !prev);
-  };
+    setSidebarCollapsed(prev => !prev)
+  }
 
-  const toggleMobileSidebar = (isOpen?: boolean) => {
-    if (typeof isOpen === 'boolean') {
-      setIsMobileSidebarOpen(isOpen);
+  const toggleMobileSidebar = (open?: boolean) => {
+    if (typeof open === 'boolean') {
+      setIsMobileSidebarOpen(open)
     } else {
-      setIsMobileSidebarOpen(prev => !prev);
+      setIsMobileSidebarOpen(prev => !prev)
     }
-  };
+  }
 
   return (
-    <DashboardContext.Provider value={{ 
-      sidebarCollapsed, 
-      toggleSidebar,
-      isMobileSidebarOpen,
-      toggleMobileSidebar
-    }}>
+    <DashboardContext.Provider
+      value={{
+        sidebarCollapsed,
+        toggleSidebar,
+        isMobileSidebarOpen,
+        toggleMobileSidebar
+      }}
+    >
       {children}
     </DashboardContext.Provider>
-  );
+  )
 }
 
 export function useDashboard() {
-  const context = useContext(DashboardContext);
-  if (context === undefined) {
-    throw new Error('useDashboard must be used within a DashboardProvider');
+  const context = useContext(DashboardContext)
+  if (!context) {
+    throw new Error('useDashboard must be used within a DashboardProvider')
   }
-  return context;
+  return context
 }

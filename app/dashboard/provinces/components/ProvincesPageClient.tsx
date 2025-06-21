@@ -102,7 +102,7 @@ export default function ProvincesPageClient({
         
         {/* ปุ่มเปิดตัวกรองบนมือถือ */}
         <button 
-          className="md:hidden flex items-center py-2 px-3 bg-blue-50 text-blue-600 rounded-lg"
+          className="md:hidden flex items-center py-2 px-3 bg-gray-50 text-gray-600 rounded-lg"
           onClick={() => setShowFiltersMobile(!showFiltersMobile)}
         >
           <AdjustmentsHorizontalIcon className="w-5 h-5 mr-1" />
@@ -114,7 +114,7 @@ export default function ProvincesPageClient({
       {(initialRegion !== 'all' || initialSearch) && (
         <div className="md:hidden flex flex-wrap gap-2 mb-4">
           {initialRegion !== 'all' && (
-            <div className="flex items-center bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm">
+            <div className="flex items-center bg-gray-100 text-gray-800 rounded-full px-3 py-1 text-sm">
               <span className="mr-1">ภูมิภาค: {getRegionName(initialRegion)}</span>
               <button 
                 onClick={() => handleRegionChange('all')}
@@ -126,7 +126,7 @@ export default function ProvincesPageClient({
           )}
           
           {initialSearch && (
-            <div className="flex items-center bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm">
+            <div className="flex items-center bg-gray-100 text-gray-800 rounded-full px-3 py-1 text-sm">
               <span className="mr-1">ค้นหา: {initialSearch}</span>
               <button 
                 onClick={() => handleSearch('')}
@@ -150,7 +150,7 @@ export default function ProvincesPageClient({
                 onClick={() => handleRegionChange(button.id)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors
                   ${initialRegion === button.id 
-                    ? 'bg-blue-800 text-white' 
+                    ? 'bg-gray-800 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
                 }
               >
@@ -168,7 +168,7 @@ export default function ProvincesPageClient({
                 value={initialSearch}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="ค้นหาตามชื่อจังหวัด..."
-                className="w-full py-2 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full py-2 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
               />
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function ProvincesPageClient({
                       onClick={() => handleRegionChange(button.id)}
                       className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors
                         ${initialRegion === button.id 
-                          ? 'bg-blue-800 text-white' 
+                          ? 'bg-gray-800 text-white' 
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
                       }
                     >
@@ -216,14 +216,14 @@ export default function ProvincesPageClient({
                   value={initialSearch}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="ค้นหาตามชื่อจังหวัด..."
-                  className="w-full py-2 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full py-2 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
                 />
               </div>
               
               <div className="p-4 border-t flex justify-end">
                 <button
                   onClick={() => setShowFiltersMobile(false)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium"
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg font-medium"
                 >
                   ปิด
                 </button>
@@ -243,7 +243,7 @@ export default function ProvincesPageClient({
                 value={initialSearch}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="ค้นหาตามชื่อจังหวัด..."
-                className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm"
               />
             </div>
           </div>

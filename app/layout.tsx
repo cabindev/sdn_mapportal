@@ -1,23 +1,18 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { Inter, Kanit } from 'next/font/google';
+import { Inter } from 'next/font/google'; // ✅ ใช้แค่ Inter
 import "./globals.css";
 import 'leaflet/dist/leaflet.css'
 import SessionProvider from "./components/SessionProvider";
-import Navbar from "./components/Navbar";
+
 import { getServerSession } from "next-auth";
 import authOptions from "./lib/configs/auth/authOptions";
 import { Toaster } from "sonner";
 
+// ✅ โหลด Inter อย่างเดียว
 const inter = Inter({ 
   subsets: ['latin'],
   variable: '--font-inter',
-});
-
-const kanit = Kanit({
-  weight: ['300', '400', '500', '600'],
-  subsets: ['thai', 'latin'],
-  variable: '--font-kanit',
 });
 
 export const metadata: Metadata = { 
@@ -35,9 +30,8 @@ export default async function RootLayout({
   
   return (
     <html lang="th" className="scroll-smooth">
-      <body className={`${inter.variable} ${kanit.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased`}>
         <SessionProvider session={session}>
-          <Navbar />
           <main className="min-h-[calc(100vh-4rem)]">
             {children}
           </main>
