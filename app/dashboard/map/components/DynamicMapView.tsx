@@ -8,6 +8,7 @@ import { DocumentWithCategory, LocationData } from "@/app/types/document";
 import { getDocuments } from "@/app/lib/actions/documents/get";
 import { toast } from "react-hot-toast";
 import DocumentForm from "./DocumentForm";
+import DocumentPopup from "./DocumentPopup";
 import MapMarker from "./MapMarker";
 import { THAILAND_BOUNDS } from "@/app/utils/colorGenerator";
 import "leaflet/dist/leaflet.css";
@@ -18,6 +19,7 @@ import ProvinceMarkers from "./ProvinceMarkers";
 import LeftNavbar from "./LeftNavbar";
 import RightSidebar from "./RightSidebar";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation"; // เพิ่ม import
 
 // Global styles for map components
 const MAP_STYLES = `
@@ -115,6 +117,7 @@ interface MapState {
   highlightedDocId: number | null;
   selectedLocation: LocationData | null;
   showSearch: boolean;
+  selectedDocument: DocumentWithCategory | null;
 }
 
 // Custom hooks
@@ -154,7 +157,9 @@ function useDocumentData(
       const docsWithDefaults = docs.map(doc => ({
         ...doc,
         year: (doc as any).year ?? (new Date().getFullYear() + 543),
-        isLatest: false
+        isLatest: false,
+        viewCount: (doc as any).viewCount ?? 0,
+        downloadCount: (doc as any).downloadCount ?? 0
       }));
       
       setInternalDocuments(docsWithDefaults);
@@ -228,6 +233,7 @@ export default function DynamicMapView({
   enableSidebar = true
 }: DynamicMapViewProps) {
   const { data: session, status } = useSession();
+  const pathname = usePathname(); // เพิ่มการใช้ pathname
   
   // Initialize map styles
   useMapStyles();
@@ -238,7 +244,8 @@ export default function DynamicMapView({
     mapReady: false,
     highlightedDocId: null,
     selectedLocation: null,
-    showSearch: false
+    showSearch: false,
+    selectedDocument: null
   });
 
   // Document data management
@@ -276,8 +283,19 @@ export default function DynamicMapView({
 
   // Feature control logic
   const isAuthenticated = status === "authenticated";
-  const shouldShowLocationMarker = !simplified && enableLocationMarker && isAuthenticated;
-  const shouldShowDocumentForm = !simplified && enableDocumentForm && isAuthenticated;
+  const isDashboardRoute = pathname?.startsWith('/dashboard'); // เช็คว่าอยู่ใน dashboard หรือไม่
+  
+  // ปรับเงื่อนไขการแสดง LocationMarker
+  const shouldShowLocationMarker = !simplified && 
+                                   enableLocationMarker && 
+                                   isAuthenticated && 
+                                   isDashboardRoute; // เพิ่มเงื่อนไข dashboard
+                                   
+  const shouldShowDocumentForm = !simplified && 
+                                enableDocumentForm && 
+                                isAuthenticated && 
+                                isDashboardRoute; // เพิ่มเงื่อนไข dashboard
+                                
   const shouldShowSearch = !simplified && enableSearch;
   const shouldShowNavbar = !simplified && enableNavbar;
   const shouldShowSidebar = !simplified && enableSidebar;
@@ -288,16 +306,49 @@ export default function DynamicMapView({
     externalOnHoverDocument?.(documentId);
   }, [externalOnHoverDocument]);
 
+  // ฟังก์ชันสำหรับจัดการ popup จาก navbar
+  const handleClickDocument = useCallback((document: DocumentWithCategory) => {
+    const docWithStats = {
+      ...document,
+      viewCount: (document as any).viewCount ?? 0,
+      downloadCount: (document as any).downloadCount ?? 0
+    };
+    
+    // แสดง popup และปิดฟอร์มถ้ามี
+    setMapState(prev => ({ 
+      ...prev, 
+      selectedDocument: docWithStats,
+      selectedLocation: null // ปิดฟอร์มเพิ่มเอกสาร
+    }));
+  }, []);
+
+  const handleClosePopup = useCallback(() => {
+    setMapState(prev => ({ ...prev, selectedDocument: null }));
+  }, []);
+
+  const handleViewDocument = useCallback(() => {
+    console.log("View document");
+  }, []);
+
+  const handleDownloadDocument = useCallback(() => {
+    console.log("Download document");
+  }, []);
+
   const handleSelectLocation = useCallback((location: LocationData) => {
     if (!isAuthenticated) {
       toast.error("กรุณาเข้าสู่ระบบเพื่อเพิ่มข้อมูลพื้นที่");
       return;
     }
     
+    if (!isDashboardRoute) {
+      toast.error("สามารถเพิ่มข้อมูลได้เฉพาะในหน้าจัดการระบบเท่านั้น");
+      return;
+    }
+    
     if (shouldShowDocumentForm) {
       setMapState(prev => ({ ...prev, selectedLocation: location }));
     }
-  }, [shouldShowDocumentForm, isAuthenticated]);
+  }, [shouldShowDocumentForm, isAuthenticated, isDashboardRoute]);
 
   const handleCloseForm = useCallback(() => {
     setMapState(prev => ({ ...prev, selectedLocation: null }));
@@ -362,6 +413,7 @@ export default function DynamicMapView({
             />
           ))}
 
+          {/* แสดง LocationMarker เฉพาะใน dashboard route เท่านั้น */}
           {shouldShowLocationMarker && (
             <LocationMarker onSelectLocation={handleSelectLocation} />
           )}
@@ -374,6 +426,7 @@ export default function DynamicMapView({
               documents={documents}
               categories={categories}
               onHoverDocument={handleHoverDocument}
+              onClickDocument={handleClickDocument}
             />
           )}
 
@@ -390,6 +443,16 @@ export default function DynamicMapView({
           
           {children}
         </MapContainer>
+      )}
+
+      {/* Document Popup */}
+      {mapState.selectedDocument && (
+        <DocumentPopup
+          document={mapState.selectedDocument}
+          onClose={handleClosePopup}
+          onView={handleViewDocument}
+          onDownload={handleDownloadDocument}
+        />
       )}
 
       {/* Search Modal */}
@@ -419,8 +482,8 @@ export default function DynamicMapView({
         </div>
       )}
 
-      {/* Document Form Modal */}
-      {shouldShowDocumentForm && mapState.selectedLocation && (
+      {/* Document Form Modal - แสดงเฉพาะใน dashboard */}
+      {shouldShowDocumentForm && mapState.selectedLocation && isDashboardRoute && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[1000]">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <DocumentForm

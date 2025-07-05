@@ -199,7 +199,7 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Link
-                    href={`/dashboard/documents/${doc.id}/edit`}
+                    href={`/dashboard/documents/edit/${doc.id}`}
                     className="text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 px-2 py-1 rounded transition-colors"
                   >
                     แก้ไข

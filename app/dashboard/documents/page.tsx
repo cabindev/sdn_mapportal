@@ -140,14 +140,7 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
   const { totalPages, totalItems: totalDocuments } = pagination
   const hasFilters = Boolean(search || categoryId)
 
-  // URL builder for pagination
-  function getPageUrl(page: number): string {
-    const urlParams = new URLSearchParams()
-    urlParams.set('page', page.toString())
-    if (search) urlParams.set('search', search)
-    if (categoryId) urlParams.set('category', categoryId.toString())
-    return `?${urlParams.toString()}`
-  }
+  // ลบฟังก์ชัน getPageUrl ออก เพราะจะทำใน PaginationControls แทน
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -210,7 +203,7 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
               <>
                 <DocumentTable documents={serializedDocuments} />
                 
-                {/* Pagination */}
+                {/* Pagination - ลบ getPageUrl prop ออก */}
                 {totalPages > 1 && (
                   <div className="border-t border-slate-200/50">
                     <PaginationControls
@@ -218,7 +211,6 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
                       totalPages={totalPages}
                       totalDocuments={totalDocuments}
                       itemsPerPage={ITEMS_PER_PAGE}
-                      getPageUrl={getPageUrl}
                     />
                   </div>
                 )}

@@ -2,6 +2,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 interface PaginationControlsProps {
@@ -9,16 +10,24 @@ interface PaginationControlsProps {
   totalPages: number
   totalDocuments: number
   itemsPerPage: number
-  getPageUrl: (page: number) => string
+  // ลบ getPageUrl ออก และไม่ส่งฟังก์ชันมาจาก Server Component
 }
 
 export default function PaginationControls({ 
   currentPage, 
   totalPages, 
   totalDocuments, 
-  itemsPerPage, 
-  getPageUrl 
+  itemsPerPage
 }: PaginationControlsProps) {
+  const searchParams = useSearchParams()
+  
+  // สร้างฟังก์ชัน getPageUrl ภายใน Client Component
+  const getPageUrl = (page: number): string => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', page.toString())
+    return `?${params.toString()}`
+  }
+
   const skip = (currentPage - 1) * itemsPerPage
   const hasPrevPage = currentPage > 1
   const hasNextPage = currentPage < totalPages

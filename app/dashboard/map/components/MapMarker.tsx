@@ -18,17 +18,16 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
   const [icon, setIcon] = useState<any>(null);
   const [viewCount, setViewCount] = useState(docData.viewCount);
   const [downloadCount, setDownloadCount] = useState(docData.downloadCount);
-  const [markerSize, setMarkerSize] = useState(16); // ลดลงจาก 28 เป็น 16
-  const [circleRadius, setCircleRadius] = useState(14); // ปรับตามสัดส่วน
+  const [markerSize, setMarkerSize] = useState(16);
+  const [circleRadius, setCircleRadius] = useState(14);
   const [showPopup, setShowPopup] = useState(false);
   const map = useMap();
   
   // ติดตามการเปลี่ยนแปลงระดับการซูม
   useMapEvent('zoom', () => {
     const zoomLevel = map.getZoom();
-    // ปรับค่าเริ่มต้นให้สัดส่วนกับ 16px
-    const newSize = Math.max(10, Math.min(16, 6 + zoomLevel * 0.8)); // ปรับตามสัดส่วน
-    const newRadius = Math.max(10, Math.min(14, 4 + zoomLevel * 0.8)); // ปรับตามสัดส่วน
+    const newSize = Math.max(10, Math.min(16, 6 + zoomLevel * 0.8));
+    const newRadius = Math.max(10, Math.min(14, 4 + zoomLevel * 0.8));
     
     setMarkerSize(newSize);
     setCircleRadius(newRadius);
@@ -47,18 +46,18 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
               height: ${markerSize}px;
               background-color: ${colorScheme.primary};
               border-radius: 50%;
-              border: ${markerSize > 12 ? 2 : 1}px solid white; /* ปรับเงื่อนไขตาม 16px */
-              box-shadow: 0 1px 4px rgba(0,0,0,0.3); /* ปรับ shadow ตามสัดส่วน */
+              border: ${markerSize > 12 ? 2 : 1}px solid white;
+              box-shadow: 0 1px 4px rgba(0,0,0,0.3);
             "></div>
             ${docData.isLatest ? `
               <div style="
                 position: absolute;
-                top: -4px; /* ปรับตาม 16px */
+                top: -4px;
                 left: -4px;
                 right: -4px;
                 bottom: -4px;
                 border-radius: 50%;
-                border: 2px solid ${colorScheme.primary}; /* เพิ่ม border ตามสัดส่วน */
+                border: 2px solid ${colorScheme.primary};
                 opacity: 0.7;
                 animation: pulse 1.5s infinite;
               "></div>
@@ -83,7 +82,7 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
               opacity: 0.7;
             }
             50% {
-              transform: scale(1.25); /* ปรับตามสัดส่วน 16px */
+              transform: scale(1.25);
               opacity: 0.5;
             }
             100% {
@@ -129,8 +128,12 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
     }
   };
   
-  // เปิด/ปิด popup
-  const togglePopup = () => {
+  // เปิด/ปิด popup พร้อมป้องกัน event propagation
+  const togglePopup = (e: any) => {
+    // ป้องกัน event ไปที่ map click handler
+    if (e && e.originalEvent) {
+      e.originalEvent.stopPropagation();
+    }
     setShowPopup(!showPopup);
   };
   
@@ -168,9 +171,9 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
           pathOptions={{
             fillColor: 'transparent',
             color: colorScheme.primary,
-            weight: 2, /* กลับมาใช้ 2 เพื่อให้สัดส่วนกับ 16px */
+            weight: 2,
             opacity: 0.6,
-            dashArray: '4, 4' /* ปรับตามสัดส่วน */
+            dashArray: '4, 4'
           }}
           radius={circleRadius}
         />

@@ -15,6 +15,7 @@ interface LeftNavbarProps {
   documents?: DocumentWithCategory[];
   categories?: any[];
   onHoverDocument?: (documentId: number | null) => void;
+  onClickDocument?: (document: DocumentWithCategory) => void;
   defaultCenter?: [number, number];
   defaultZoom?: number;
 }
@@ -23,6 +24,7 @@ export default function LeftNavbar({
   documents = [],
   categories = [],
   onHoverDocument,
+  onClickDocument,
   defaultCenter = [13.7563, 100.5018],
   defaultZoom = 6,
 }: LeftNavbarProps) {
@@ -93,9 +95,21 @@ export default function LeftNavbar({
     }
   };
 
-  const handleDocumentClick = (doc: DocumentWithCategory) => {
+  // แก้ไขฟังก์ชันนี้ - แสดง DocumentPopup แทนและไม่ trigger LocationMarker
+  const handleDocumentClick = (doc: DocumentWithCategory, event: React.MouseEvent) => {
+    // ป้องกัน event bubbling ที่อาจจะ trigger LocationMarker
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // 1. ย้ายแผนที่ไปยังตำแหน่งเอกสาร โดยไม่ trigger LocationMarker
     if (map && doc.latitude && doc.longitude) {
-      map.flyTo([doc.latitude, doc.longitude], 14, { animate: true, duration: 1.5 });
+      // ใช้ setView แทน flyTo เพื่อป้องกันการ trigger event อื่น
+      map.setView([doc.latitude, doc.longitude], 14, { animate: true });
+    }
+    
+    // 2. แสดง DocumentPopup
+    if (onClickDocument) {
+      onClickDocument(doc);
     }
   };
 
@@ -113,7 +127,7 @@ export default function LeftNavbar({
         <button
           onClick={() => setIsControlsOpen(!isControlsOpen)}
           className="p-3 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 hover:bg-white hover:shadow-xl transition-all duration-200"
-          title="ชั้นข้อมูลเพื่อดูเนื้อง"
+          title="ชั้นข้อมูลเพื่อดูเนื้อหา"
         >
           <Layers className="h-5 w-5 text-gray-700" />
         </button>
@@ -129,7 +143,7 @@ export default function LeftNavbar({
               <h3 className="text-gray-800 font-medium">ชั้นข้อมูลเชิงพื้นที่</h3>
             </div>
             <p className="text-sm text-gray-600 mt-1">
-พื้นที่ : ผลสำฤทธิ์
+              พื้นที่ : ผลสำเร็จ
             </p>
           </div>
 
@@ -182,7 +196,7 @@ export default function LeftNavbar({
                           }`}
                           onMouseEnter={() => handleMouseEnter(doc)}
                           onMouseLeave={handleMouseLeave}
-                          onClick={() => handleDocumentClick(doc)}
+                          onClick={(event) => handleDocumentClick(doc, event)}
                         >
                           <div className="flex items-start gap-3">
                             {doc.coverImage ? (
@@ -232,6 +246,11 @@ export default function LeftNavbar({
                                     <span>{doc.downloadCount || 0}</span>
                                   </div>
                                 </div>
+                              </div>
+                              
+                              {/* Hint สำหรับการใช้งาน */}
+                              <div className="text-xs text-blue-600 mt-1 italic opacity-75">
+                                คลิกเพื่อดูรายละเอียดเอกสาร
                               </div>
                             </div>
                           </div>
