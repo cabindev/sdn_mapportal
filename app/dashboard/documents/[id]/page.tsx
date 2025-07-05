@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { getDocumentById } from '@/app/lib/actions/documents/get';
 import { getCategoryColor } from '@/app/utils/colorGenerator';
 import { ArrowLeftIcon, PencilIcon, EyeIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import DocumentActions from './DocumentActions';
+
 
 interface DocumentDetailsPageProps {
   params: Promise<{
@@ -161,12 +161,6 @@ export default async function DocumentDetailsPage({ params }: DocumentDetailsPag
             </div>
           </div>
           
-          {/* แยกส่วนที่มี Event Handler ไปเป็น Client Component */}
-          <DocumentActions 
-            documentId={id}
-            filePath={document.filePath}
-            primaryColor={colorScheme.primary}
-          />
         </div>
       </div>
     </div>
