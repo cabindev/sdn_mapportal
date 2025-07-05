@@ -3,6 +3,7 @@ import React from "react";
 import { getCategories } from '@/app/lib/actions/categories/get';
 import { getPublishedDocuments } from '@/app/lib/actions/documents/get';
 import MapFilterWrapper from './components/MapFilterWrapper';
+import ContactSupport from './components/ContactSupport';
 
 export default async function HomePage() {
   const [categories, documents] = await Promise.all([
@@ -22,6 +23,9 @@ export default async function HomePage() {
           simplified={false}
         />
       </div>
+
+      {/* Contact Support Button */}
+      <ContactSupport />
     </main>
   );
 }
