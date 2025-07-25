@@ -1,4 +1,4 @@
-// app/dashboard/map/components/RightSidebar.tsx
+// app/google/components/GoogleRightSidebar.tsx
 "use client";
 
 import { useState, useMemo } from "react";
@@ -13,7 +13,7 @@ import {
 import { CategoryDoc } from "@prisma/client";
 import { DocumentWithCategory } from "@/app/types/document";
 
-interface RightSidebarProps {
+interface GoogleRightSidebarProps {
   categories: CategoryDoc[];
   selectedCategories: number[];
   setSelectedCategories: (ids: number[]) => void;
@@ -24,14 +24,14 @@ interface RightSidebarProps {
 
 type PanelType = 'filter' | 'stats' | null;
 
-export default function RightSidebar({
+export default function GoogleRightSidebar({
   categories,
   selectedCategories,
   setSelectedCategories,
   documents,
   onHoverDocument,
   onSearchClick
-}: RightSidebarProps) {
+}: GoogleRightSidebarProps) {
   const [activePanel, setActivePanel] = useState<PanelType>(null);
 
   // คำนวณสถิติ
@@ -93,8 +93,8 @@ export default function RightSidebar({
 
   return (
     <>
-      {/* Vertical Icon Panel - ปรับตำแหน่งให้ไม่ทับปุ่ม zoom */}
-      <div className="absolute top-44 right-4 z-[900] flex flex-col gap-3">
+      {/* Vertical Icon Panel - ปรับตำแหน่งให้ไม่ทับเครื่องมือ Google Maps */}
+      <div className="absolute top-20 right-4 z-[900] flex flex-col gap-3">
         {/* Filter Button */}
         <button
           onClick={() => togglePanel('filter')}
@@ -129,7 +129,7 @@ export default function RightSidebar({
 
       {/* Expanded Panel - ปรับตำแหน่งให้สอดคล้องกับปุ่ม */}
       {activePanel && (
-        <div className="absolute top-44 right-20 z-[900] w-80 bg-white/95 rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="absolute top-20 right-20 z-[900] w-80 bg-white/95 rounded-xl shadow-lg border border-gray-200 overflow-hidden">
           {/* Header */}
           <div className="border-b border-gray-200 p-4 flex items-center justify-between bg-gray-50/50">
             <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">

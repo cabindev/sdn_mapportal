@@ -1,6 +1,6 @@
 // app/dashboard/map/components/ProvinceMarkers.tsx
 import { useEffect, useState } from 'react';
-import { Marker, Tooltip, useMap } from 'react-leaflet';
+import { Marker, useMap } from 'react-leaflet';
 import { provinceCoordinates } from '@/app/utils/provinceCoordinates';
 import L from 'leaflet';
 
@@ -55,11 +55,7 @@ export default function ProvinceMarkers() {
           key={index}
           position={[province.latitude, province.longitude]} 
           icon={provinceIcon}
-        >
-          <Tooltip direction="top" offset={[0, -5]} opacity={0.9}>
-            <div className="text-xs font-medium">{province.province}</div>
-          </Tooltip>
-        </Marker>
+        />
       ))}
     </>
   );

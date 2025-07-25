@@ -5,16 +5,21 @@ import { useState, useCallback, useEffect } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import { DocumentWithCategory } from '@/app/types/document';
 import { getCategoryColor } from '@/app/utils/colorGenerator';
+import GoogleLeftNavbar from './GoogleLeftNavbar';
+import GoogleRightSidebar from './GoogleRightSidebar';
+import GoogleDocumentPopup from './GoogleDocumentPopup';
+import GoogleProvinceOverlay from './GoogleProvinceOverlay';
+import { getCategories } from '@/app/lib/actions/categories/get';
 
-const containerStyle = {
+const getContainerStyle = (fullscreen: boolean) => ({
   width: '100%',
-  height: '600px',
-  borderRadius: '8px',
-};
+  height: fullscreen ? '100vh' : '600px',
+  borderRadius: fullscreen ? '0px' : '8px',
+});
 
 const center = {
-  lat: 15.870032,
-  lng: 100.992541
+  lat: 13.0,
+  lng: 100.5
 };
 
 const mapOptions = {
@@ -39,45 +44,59 @@ const mapOptions = {
 interface GoogleMapViewProps {
   documents: DocumentWithCategory[];
   onMapLoad?: (map: google.maps.Map) => void;
+  fullscreen?: boolean;
+  showNavigation?: boolean;
 }
 
-export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewProps) {
+export default function GoogleMapView({ documents, onMapLoad, fullscreen = false, showNavigation = false }: GoogleMapViewProps) {
   // ✅ ประกาศ hooks ทั้งหมดในลำดับที่เหมือนกันเสมอ
   const [selectedDoc, setSelectedDoc] = useState<DocumentWithCategory | null>(null);
   const [expandedInfo, setExpandedInfo] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
   const [isLoadingKey, setIsLoadingKey] = useState(true);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [hoveredDocId, setHoveredDocId] = useState<number | null>(null);
 
   // ✅ useEffect ต้องอยู่หลัง useState เสมอ
   useEffect(() => {
-    const fetchApiKey = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/google-maps');
-        if (response.ok) {
-          const data = await response.json();
+        const [apiResponse, categoriesData] = await Promise.all([
+          fetch('/api/google-maps'),
+          getCategories()
+        ]);
+        
+        if (apiResponse.ok) {
+          const data = await apiResponse.json();
           setApiKey(data.apiKey);
           console.log('✅ Google Maps API Key loaded successfully');
         } else {
           console.error('❌ Failed to fetch Google Maps API Key');
           setMapError('ไม่สามารถโหลด Google Maps API Key ได้');
         }
+        
+        setCategories(categoriesData);
+        setSelectedCategories(categoriesData.map(c => c.id));
       } catch (error) {
-        console.error('❌ Error fetching API Key:', error);
-        setMapError('เกิดข้อผิดพลาดในการโหลด API Key');
+        console.error('❌ Error fetching data:', error);
+        setMapError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
       } finally {
         setIsLoadingKey(false);
       }
     };
 
-    fetchApiKey();
+    fetchData();
   }, []);
 
   // ✅ useCallback ต้องอยู่หลัง useEffect เสมอ
   const handleMapLoad = useCallback((map: google.maps.Map) => {
     setMap(map);
+    setMapInstance(map);
     setIsLoaded(true);
     console.log('✅ Google Maps โหลดสำเร็จ');
     
@@ -100,6 +119,26 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
     setSelectedDoc(null);
     setExpandedInfo(false);
   }, []);
+  
+  const handleHoverDocument = useCallback((documentId: number | null) => {
+    setHoveredDocId(documentId);
+  }, []);
+  
+  const handleClickDocument = useCallback((document: DocumentWithCategory) => {
+    setSelectedDoc(document);
+    setExpandedInfo(false);
+  }, []);
+  
+  const handleSearchClick = useCallback(() => {
+    console.log('Search clicked');
+  }, []);
+  
+  const handleFlyTo = useCallback((lat: number, lng: number, zoom: number = 12) => {
+    if (mapInstance) {
+      mapInstance.panTo({ lat, lng });
+      mapInstance.setZoom(zoom);
+    }
+  }, [mapInstance]);
 
   // Debug information
   console.log('🔑 API Key found:', !!apiKey);
@@ -156,9 +195,16 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
     );
   }
 
+  const containerStyle = getContainerStyle(fullscreen);
+  const wrapperClass = fullscreen 
+    ? "w-full h-full relative" 
+    : "bg-white p-6 rounded-xl shadow-lg relative";
+
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg relative">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">แผนที่เอกสารด้วย Google Maps</h2>
+    <div className={wrapperClass}>
+      {!fullscreen && (
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">แผนที่เอกสารด้วย Google Maps</h2>
+      )}
       
       <LoadScript 
         googleMapsApiKey={apiKey}
@@ -186,7 +232,9 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
           options={mapOptions}
         >
           {/* Markers */}
-          {isLoaded && documents.map(doc => {
+          {isLoaded && documents.filter(doc => 
+            selectedCategories.length === 0 || selectedCategories.includes(doc.categoryId)
+          ).map(doc => {
             const colorScheme = getCategoryColor(doc.categoryId);
             return (
               <Marker 
@@ -206,80 +254,61 @@ export default function GoogleMapView({ documents, onMapLoad }: GoogleMapViewPro
             );
           })}
           
-          {/* InfoWindow */}
+          {/* InfoWindow with GoogleDocumentPopup */}
           {selectedDoc && (
             <InfoWindow
               position={{ lat: selectedDoc.latitude, lng: selectedDoc.longitude }}
               onCloseClick={handleCloseInfoWindow}
               options={{
-                maxWidth: expandedInfo ? 500 : 320,
+                maxWidth: expandedInfo ? 440 : 380,
                 pixelOffset: new google.maps.Size(0, -40)
               }}
             >
-              <div className={`font-sans transition-all duration-300 ${expandedInfo ? 'max-w-[480px]' : 'max-w-xs'}`}>
-                <div className="flex flex-col">
-                  {/* ส่วนหัว */}
-                  <div className="flex justify-between items-start mb-2">
-                    <div className={`px-2 py-1 rounded-full text-xs ${expandedInfo ? 'text-sm' : ''}`}
-                      style={{
-                        backgroundColor: `${getCategoryColor(selectedDoc.categoryId).primary}20`,
-                        color: getCategoryColor(selectedDoc.categoryId).primary
-                      }}
-                    >
-                      {selectedDoc.category.name}
-                    </div>
-                    <button 
-                      onClick={toggleExpandInfo}
-                      className="text-gray-500 hover:text-gray-800 transition-colors"
-                    >
-                      {expandedInfo ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                  
-                  {/* หัวข้อเอกสาร */}
-                  <h3 className={`font-medium text-gray-800 mb-2 ${expandedInfo ? 'text-xl' : 'text-lg'}`}>
-                    {selectedDoc.title}
-                  </h3>
-                  
-                  {/* คำอธิบาย */}
-                  <div className="mb-3">
-                    <p className={`text-gray-600 ${expandedInfo ? 'text-base' : 'text-sm'}`}>
-                      {selectedDoc.description}
-                    </p>
-                  </div>
-                  
-                  {/* ข้อมูลพื้นที่ */}
-                  <div className="bg-gray-50 p-3 rounded-md mb-3 text-xs">
-                    <span className="text-sm">
-                      {selectedDoc.district}, {selectedDoc.amphoe}, {selectedDoc.province}
-                    </span>
-                  </div>
-                  
-                  {/* ปุ่มดูเอกสาร */}
-                  <div className="flex gap-2 mt-2">
-                    <a 
-                      href={selectedDoc.filePath} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-md text-center transition-colors"
-                    >
-                      เปิดดูเอกสาร
-                    </a>
-                  </div>
-                </div>
-              </div>
+              <GoogleDocumentPopup
+                document={selectedDoc}
+                position={{ lat: selectedDoc.latitude, lng: selectedDoc.longitude }}
+                onClose={handleCloseInfoWindow}
+                isExpanded={expandedInfo}
+                onToggleExpand={toggleExpandInfo}
+              />
             </InfoWindow>
           )}
+          {/* Province Overlay */}
+          <GoogleProvinceOverlay map={mapInstance} />
         </GoogleMap>
       </LoadScript>
+      
+      {/* Navigation Components - แสดงเฉพาะใน fullscreen */}
+      {showNavigation && fullscreen && (
+        <>
+          {/* GoogleLeftNavbar - ใช้ position absolute แทน leaflet component */}
+          <div className="absolute top-0 left-0 z-[1000] h-full pointer-events-none">
+            <div className="pointer-events-auto">
+              <GoogleLeftNavbar
+                documents={documents}
+                categories={categories}
+                onHoverDocument={handleHoverDocument}
+                onClickDocument={handleClickDocument}
+                onFlyTo={handleFlyTo}
+              />
+            </div>
+          </div>
+
+          {/* GoogleRightSidebar */}
+          <div className="absolute top-0 right-0 z-[1000] h-full pointer-events-none">
+            <div className="pointer-events-auto">
+              <GoogleRightSidebar
+                categories={categories}
+                selectedCategories={selectedCategories}
+                setSelectedCategories={setSelectedCategories}
+                documents={documents}
+                onHoverDocument={handleHoverDocument}
+                onSearchClick={handleSearchClick}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

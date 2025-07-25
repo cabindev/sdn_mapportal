@@ -26,24 +26,35 @@ const GoogleDocumentSidebar = dynamic(() => import('./GoogleDocumentSidebar'), {
 
 interface GoogleMapClientProps {
   documents: DocumentWithCategory[];
+  fullscreen?: boolean;
 }
 
-export default function GoogleMapClient({ documents }: GoogleMapClientProps) {
+export default function GoogleMapClient({ documents, fullscreen = false }: GoogleMapClientProps) {
   // เรียงลำดับเอกสารล่าสุด
   const recentDocuments = [...documents]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 10);
 
+  const containerClass = fullscreen 
+    ? "fixed inset-0 w-full h-full" 
+    : "rounded-xl overflow-hidden shadow-lg relative";
+
   return (
-    <div className="rounded-xl overflow-hidden shadow-lg relative">
-      <GoogleMapView documents={documents} />
+    <div className={containerClass}>
+      <GoogleMapView 
+        documents={documents} 
+        fullscreen={fullscreen} 
+        showNavigation={fullscreen}
+      />
       
-      {/* แสดง GoogleDocumentSidebar แยกต่างหาก */}
-      <div className="absolute top-0 right-0 bottom-0 pointer-events-none z-10">
-        <div className="relative h-full pointer-events-auto">
-          <GoogleDocumentSidebar documents={recentDocuments} />
+      {/* แสดง GoogleDocumentSidebar เฉพาะเมื่อไม่ใช่ fullscreen */}
+      {!fullscreen && (
+        <div className="absolute top-0 right-0 bottom-0 pointer-events-none z-10">
+          <div className="relative h-full pointer-events-auto">
+            <GoogleDocumentSidebar documents={recentDocuments} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

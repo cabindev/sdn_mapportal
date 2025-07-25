@@ -1,3 +1,4 @@
+//app/dashboard/map/components/TambonSearch.tsx
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, ChangeEvent } from "react";
@@ -29,11 +30,11 @@ export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
 
   // ฟังก์ชัน filter รายการตาม debouncedSearchTerm
   const filteredTambons = useMemo(() => {
-    if (!debouncedSearchTerm) return [];
+    if (!debouncedSearchTerm || debouncedSearchTerm.length < 2) return [];
 
     const lowerTerm = debouncedSearchTerm.toLowerCase();
 
-    return allTambons.filter((item) => {
+    const filtered = allTambons.filter((item) => {
       const tambonName = item.TAMBON_T?.toLowerCase() || "";
       const amphoeName = item.AMPHOE_T?.toLowerCase() || "";
       const changwatName = item.CHANGWAT_T?.toLowerCase() || "";
@@ -43,6 +44,9 @@ export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
         changwatName.includes(lowerTerm)
       );
     });
+
+    // จำกัดผลลัพธ์ไม่เกิน 10 รายการเพื่อประสิทธิภาพ
+    return filtered.slice(0, 10);
   }, [debouncedSearchTerm, allTambons]);
 
   const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -103,11 +107,30 @@ export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
         </div>
         <input
           type="text"
-          className="w-full bg-transparent text-white px-2 py-2 text-sm focus:outline-none"
-          placeholder="ค้นหาตำบล อำเภอ หรือจังหวัด"
+          className="w-full bg-transparent text-white px-2 py-2 text-sm focus:outline-none placeholder-gray-400"
+          placeholder="ค้นหาตำบล อำเภอ หรือจังหวัด (ขั้นต่ำ 2 ตัวอักษร)"
           value={searchTerm}
           onChange={handleInputChange}
+          disabled={isLoading}
         />
+        {isLoading && (
+          <div className="flex-shrink-0 flex items-center justify-center w-10 h-10">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-orange-500 border-t-transparent"></div>
+          </div>
+        )}
+        {searchTerm && (
+          <button
+            onClick={() => {
+              setSearchTerm("");
+              setDebouncedSearchTerm("");
+            }}
+            className="flex-shrink-0 flex items-center justify-center w-8 h-8 text-gray-400 hover:text-white transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
       
       {/* แสดงรายการที่กรองได้ */}

@@ -16,6 +16,7 @@ import CircleLoader from "./CircleLoader";
 import TambonSearch from "./TambonSearch";
 import LocationMarker from "./LocationMarker";
 import ProvinceMarkers from "./ProvinceMarkers";
+import LeafletProvinceOverlay from "./LeafletProvinceOverlay";
 import LeftNavbar from "./LeftNavbar";
 import RightSidebar from "./RightSidebar";
 import { useSession } from "next-auth/react";
@@ -404,6 +405,7 @@ export default function DynamicMapView({
           />
 
           <ProvinceMarkers />
+          <LeafletProvinceOverlay />
 
           {processedDocuments.map((doc) => (
             <MapMarker 
@@ -463,6 +465,7 @@ export default function DynamicMapView({
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">ค้นหาตำแหน่ง</h3>
                 <button
+                  type="button"
                   onClick={handleToggleSearch}
                   className="text-gray-500 hover:text-gray-700 p-1"
                 >
