@@ -110,8 +110,8 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
     setMapError('ไม่สามารถโหลดแผนที่ได้ กรุณาลองใหม่อีกครั้ง');
   }, []);
 
-  const toggleExpandInfo = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
+  const toggleExpandInfo = useCallback((e?: React.MouseEvent) => {
+    e?.preventDefault();
     setExpandedInfo(!expandedInfo);
   }, [expandedInfo]);
   
