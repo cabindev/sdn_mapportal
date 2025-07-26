@@ -126,16 +126,16 @@ export default function LeftNavbar({
       <div className="absolute top-4 left-4 z-[9999]">
         <button
           onClick={() => setIsControlsOpen(!isControlsOpen)}
-          className="p-3 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 hover:bg-white hover:shadow-xl transition-all duration-200"
+          className="p-2 rounded-lg transition-all duration-200 bg-white/90 text-gray-600 hover:bg-white hover:text-gray-900 shadow-sm"
           title="ชั้นข้อมูลเพื่อดูเนื้อหา"
         >
-          <Layers className="h-5 w-5 text-gray-700" />
+          <Layers className="h-4 w-4" />
         </button>
       </div>
 
       {/* Floating Control Panel */}
       {isControlsOpen && (
-        <div className="absolute top-4 left-20 z-[9999] w-80 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 overflow-hidden max-h-[calc(100vh-32px)]">
+        <div className="absolute top-4 left-16 z-[9999] w-80 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 overflow-hidden max-h-[calc(100vh-32px)]">
           {/* Header */}
           <div className="bg-gray-50 p-4 border-b border-gray-200">
             <div className="flex items-center gap-2">

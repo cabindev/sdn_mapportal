@@ -20,7 +20,7 @@ export default function StatsTab({ categories, documents }: StatsTabProps) {
       <div className="bg-slate-100 p-1 rounded-lg inline-flex mb-4">
         <button
           onClick={() => setView('category')}
-          className={`py-1.5 px-4 text-sm rounded-md transition-colors ${
+          className={`py-1.5 px-4 text-xs rounded-md transition-colors ${
             view === 'category' 
               ? 'bg-white shadow-sm text-slate-800 font-medium' 
               : 'text-slate-600 hover:bg-slate-50'
@@ -31,7 +31,7 @@ export default function StatsTab({ categories, documents }: StatsTabProps) {
         </button>
         <button
           onClick={() => setView('region')}
-          className={`py-1.5 px-4 text-sm rounded-md transition-colors ${
+          className={`py-1.5 px-4 text-xs rounded-md transition-colors ${
             view === 'region' 
               ? 'bg-white shadow-sm text-slate-800 font-medium' 
               : 'text-slate-600 hover:bg-slate-50'
@@ -45,12 +45,12 @@ export default function StatsTab({ categories, documents }: StatsTabProps) {
       {/* สถิติตามหมวดหมู่ */}
       {view === 'category' && (
         <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <h2 className="font-medium text-slate-800 mb-4 flex items-center">
+          <h2 className="font-light text-xs text-slate-800 mb-4 flex items-center">
             <span className="inline-block w-1 h-5 bg-orange-500 mr-2 rounded-sm"></span>
             สัดส่วนเอกสารตามหมวดหมู่
           </h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="space-y-3">
             {categories.map((cat) => {
               const count = documents.filter(
                 (d) => d.categoryId === cat.id
@@ -62,34 +62,35 @@ export default function StatsTab({ categories, documents }: StatsTabProps) {
                   : 0;
 
               return (
-                <div key={cat.id} className="bg-slate-50 p-3 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center">
-                      <span
-                        className="w-4 h-4 rounded-full mr-2"
-                        style={{ backgroundColor: colorScheme.primary }}
-                      ></span>
-                      <span className="text-sm text-slate-800 font-medium truncate">
-                        {cat.name}
-                      </span>
-                    </div>
-                    <span className="text-sm font-bold text-slate-700 bg-white px-2 py-0.5 rounded-md shadow-sm">
-                      {count} รายการ
+                <div key={cat.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  {/* Left: Color + Name */}
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: colorScheme.primary }}
+                    />
+                    <span className="text-xs font-medium text-gray-800 truncate">
+                      {cat.name}
                     </span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-full bg-slate-200 rounded-full h-2.5 mr-2 overflow-hidden">
+                  
+                  {/* Center: Progress Bar */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="w-16 bg-gray-200 rounded-full h-1.5 overflow-hidden">
                       <div
-                        className="h-2.5 rounded-full transition-all duration-500"
+                        className="h-1.5 rounded-full transition-all duration-500"
                         style={{
                           width: `${percentage}%`,
                           backgroundColor: colorScheme.primary,
                         }}
-                      ></div>
+                      />
                     </div>
-                    <span className="text-xs font-medium text-slate-600 bg-white px-1.5 py-0.5 rounded w-12 text-center shadow-sm">
-                      {percentage}%
-                    </span>
+                  </div>
+                  
+                  {/* Right: Count + Percentage */}
+                  <div className="flex items-center gap-2 flex-shrink-0 text-xs text-gray-600">
+                    <span className="font-light">{count}</span>
+                    <span className="font-medium">({percentage}%)</span>
                   </div>
                 </div>
               );
@@ -97,10 +98,15 @@ export default function StatsTab({ categories, documents }: StatsTabProps) {
           </div>
           
           {/* สรุปจำนวนเอกสารทั้งหมด */}
-          <div className="mt-4 p-3 bg-orange-50 rounded-lg text-center">
-            <span className="text-orange-700 font-medium">
-              รวมทั้งหมด {documents.length} เอกสาร จาก {categories.length} หมวดหมู่
-            </span>
+          <div className="mt-4 pt-3 border-t border-gray-200">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 font-light">รวมทั้งหมด</span>
+              <span className="font-medium text-gray-800">{documents.length} เอกสาร</span>
+            </div>
+            <div className="flex justify-between items-center text-xs mt-1">
+              <span className="text-gray-600 font-light">จำนวนหมวดหมู่</span>
+              <span className="font-medium text-gray-800">{categories.length} หมวดหมู่</span>
+            </div>
           </div>
         </div>
       )}
@@ -108,7 +114,7 @@ export default function StatsTab({ categories, documents }: StatsTabProps) {
       {/* สถิติตามภูมิภาค */}
       {view === 'region' && (
         <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <h2 className="font-medium text-slate-800 mb-4 flex items-center">
+          <h2 className="font-light text-xs text-slate-800 mb-4 flex items-center">
             <span className="inline-block w-1 h-5 bg-orange-500 mr-2 rounded-sm"></span>
             จำนวนเอกสารตามภูมิภาค
           </h2>

@@ -40,47 +40,42 @@ export default function RegionalStats({ documents }: RegionalStatsProps) {
   
   // แสดงโซนทั้งหมด
   const zoneDisplay = [
-    { code: "north-upper", name: "เหนือบน", color: "#FFD400" },
-    { code: "north-lower", name: "เหนือล่าง", color: "#FF7733" },
-    { code: "northeast-upper", name: "อีสานบน", color: "#FF1654" },
-    { code: "northeast-lower", name: "อีสานล่าง", color: "#D90368" },
-    { code: "central", name: "กลาง", color: "#65B891" },
-    { code: "east", name: "ตะวันออก", color: "#247BA0" },
-    { code: "west", name: "ตะวันตก", color: "#05D9E8" },
-    { code: "south-upper", name: "ใต้บน", color: "#99E1D9" },
-    { code: "south-lower", name: "ใต้ล่าง", color: "#008148" },
-    { code: "bangkok", name: "กรุงเทพฯ", color: "#202020" }
+    { code: "north-upper", name: "เหนือบน" },
+    { code: "north-lower", name: "เหนือล่าง" },
+    { code: "northeast-upper", name: "อีสานบน" },
+    { code: "northeast-lower", name: "อีสานล่าง" },
+    { code: "central", name: "กลาง" },
+    { code: "east", name: "ตะวันออก" },
+    { code: "west", name: "ตะวันตก" },
+    { code: "south-upper", name: "ใต้บน" },
+    { code: "south-lower", name: "ใต้ล่าง" },
+    { code: "bangkok", name: "กรุงเทพฯ" }
   ];
   
   return (
     <div className="w-full">
-      <h2 className="font-medium text-slate-800 mb-3">การกระจายตามโซนสุขภาพ</h2>
-      <div className="bg-slate-50 rounded-lg p-3">
-        <div className="text-center mb-3">
-          <span className="text-sm text-slate-600">จำนวนเอกสารทั้งหมด</span>
-          <div className="text-2xl font-bold text-slate-800">{totalDocuments}</div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {zoneDisplay.map(zone => {
-            const count = zoneCounts[zone.code as HealthZone] || 0;
-            const percent = totalDocuments > 0 ? Math.round((count / totalDocuments) * 100) : 0;
-            
-            return (
-              <div key={zone.code} className="p-2 text-center">
-                <div className="bg-white rounded-lg p-2 shadow-sm border border-slate-200">
-                  <div className="flex items-center justify-center">
-                    <span 
-                      className="w-3 h-3 rounded-full mr-1.5" 
-                      style={{ backgroundColor: zone.color }}
-                    ></span>
-                    <span className="text-xs text-slate-500">{zone.name}</span>
-                  </div>
-                  <div className="text-lg font-semibold text-slate-800">{count}</div>
-                  <div className="text-xs text-slate-400">{percent}%</div>
-                </div>
+      <div className="space-y-2">
+        {zoneDisplay.map(zone => {
+          const count = zoneCounts[zone.code as HealthZone] || 0;
+          const percent = totalDocuments > 0 ? Math.round((count / totalDocuments) * 100) : 0;
+          
+          return (
+            <div key={zone.code} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+              <span className="text-xs font-medium text-gray-800">{zone.name}</span>
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <span className="font-light">{count}</span>
+                <span className="font-medium">({percent}%)</span>
               </div>
-            );
-          })}
+            </div>
+          );
+        })}
+        
+        {/* สรุปรวม */}
+        <div className="mt-3 pt-2 border-t border-gray-200">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-gray-600 font-light">รวมทั้งหมด</span>
+            <span className="font-medium text-gray-800">{totalDocuments} เอกสาร</span>
+          </div>
         </div>
       </div>
     </div>

@@ -2,22 +2,22 @@
 // ชุดสีสดใสและทันสมัย
 
 const COLOR_PALETTE = [
-  '#FF3B30', // Vivid Red (Apple)
-  '#FF9500', // Vibrant Orange
-  '#FFCC00', // Bright Yellow
-  '#34C759', // Fresh Green (Apple)
-  '#00C7BE', // Turquoise
-  '#007AFF', // Vibrant Blue (Apple)
-  '#5856D6', // Electric Purple
-  '#AF52DE', // Bright Violet (Apple)
-  '#FF2D55', // Pink (Apple)
-  '#5AC8FA', // Sky Blue (Apple)
-  '#4CD964', // Lime Green
-  '#FF6B22', // Deep Orange
-  '#FF453A', // Coral Red
-  '#32ADE6', // Cyan Blue
-  '#BF5AF2', // Lavender Purple
-  '#FF375F', // Rose
+  '#FF4444', // Bright Red - แดงสด
+  '#FF8800', // Vivid Orange - ส้มสด  
+  '#FFDD00', // Bright Yellow - เหลืองสด
+  '#44BB44', // Bright Green - เขียวสด
+  '#00DDDD', // Bright Cyan - ฟ้าเขียวสด
+  '#4488FF', // Bright Blue - น้ำเงินสด
+  '#AA44FF', // Bright Purple - ม่วงสด
+  '#FF44AA', // Bright Pink - ชมพูสด
+  '#FF7722', // Bright Orange-Red - ส้มแดงสด
+  '#66DD66', // Light Green - เขียวอ่อนสด
+  '#FF6699', // Light Pink - ชมพูอ่อนสด
+  '#6666FF', // Light Blue - น้ำเงินอ่อนสด
+  '#FFAA00', // Bright Amber - เหลืองทองสด
+  '#22DDAA', // Turquoise - เขียวฟ้าสด
+  '#BB44BB', // Magenta - ม่วงแดงสด
+  '#DDAA44', // Golden - ทองคำสด
 ];
 
 export interface CategoryColorScheme {
