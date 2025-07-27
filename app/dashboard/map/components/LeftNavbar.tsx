@@ -275,7 +275,7 @@ export default function LeftNavbar({
                   className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
                 >
                   <LayoutDashboard className="w-4 h-4 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-800">จัดการระบบ</span>
+                  <span className="text-sm font-medium text-gray-800">Dashboard</span>
                 </Link>
               </div>
             )}

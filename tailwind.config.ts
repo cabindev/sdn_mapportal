@@ -10,7 +10,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-roboto)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Seppuri", "ui-sans-serif", "system-ui", "sans-serif"],
+        seppuri: ["Seppuri", "sans-serif"],
       },
     },
   },

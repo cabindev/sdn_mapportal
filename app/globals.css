@@ -1,16 +1,70 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Seppuri Font Family */
+@font-face {
+  font-family: 'Seppuri';
+  src: url('./fonts/seppuri-thin-webfont.woff2') format('woff2'),
+       url('./fonts/seppuri-thin-webfont.woff') format('woff');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Seppuri';
+  src: url('./fonts/seppuri-extralight-webfont.woff2') format('woff2'),
+       url('./fonts/seppuri-extralight-webfont.woff') format('woff');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Seppuri';
+  src: url('./fonts/seppuri-regular-webfont.woff2') format('woff2'),
+       url('./fonts/seppuri-regular-webfont.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Seppuri';
+  src: url('./fonts/seppuri-medium-webfont.woff2') format('woff2'),
+       url('./fonts/seppuri-medium-webfont.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Seppuri';
+  src: url('./fonts/seppuri-semibold-webfont.woff2') format('woff2'),
+       url('./fonts/seppuri-semibold-webfont.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Seppuri';
+  src: url('./fonts/seppuri-bold-webfont.woff2') format('woff2'),
+       url('./fonts/seppuri-bold-webfont.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   body {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Seppuri', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-sans font-medium tracking-tight;
+    font-family: 'Seppuri', sans-serif;
+    @apply font-semibold tracking-tight;
   }
 }
 

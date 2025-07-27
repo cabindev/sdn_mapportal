@@ -1,58 +1,113 @@
 // app/dashboard/components/charts/CategoriesDistributionChart.tsx
 'use client';
 
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, Cell
-} from 'recharts';
+import { useEffect, useRef } from 'react';
+import * as echarts from 'echarts';
 import { BarChartData, ChartProps } from '../types/chart';
-import { getCategoryColor } from '@/app/utils/colorGenerator';
+// import { getCategoryColor } from '@/app/utils/colorGenerator'; // ไม่ใช้แล้ว
 
 export default function CategoriesDistributionChart({ 
   data, 
   title = "เอกสารแยกตามหมวดหมู่", 
   className = "" 
 }: ChartProps) {
+  const chartRef = useRef<HTMLDivElement>(null);
   const barData = data as BarChartData[];
 
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    const chart = echarts.init(chartRef.current);
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        },
+        formatter: function(params: any) {
+          const data = params[0];
+          return `หมวดหมู่: ${data.name}<br/>จำนวน: ${data.value} รายการ`;
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '15%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: barData.map(item => item.name),
+        axisLabel: {
+          interval: 0,
+          rotate: -45,
+          fontSize: 11,
+          color: '#6B7280'
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#E5E7EB'
+          }
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          fontSize: 11,
+          color: '#6B7280'
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#E5E7EB'
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: '#F3F4F6'
+          }
+        }
+      },
+      series: [
+        {
+          name: 'จำนวนเอกสาร',
+          type: 'bar',
+          data: barData.map((item, index) => {
+            // สีมืออาชีพแบบสะอาด
+            const professionalColors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4', '#EC4899', '#84CC16'];
+            return {
+              value: item.count,
+              itemStyle: {
+                color: professionalColors[index % professionalColors.length],
+                borderColor: '#FFFFFF',
+                borderWidth: 0
+              }
+            };
+          }),
+          barWidth: '50%'
+        }
+      ]
+    };
+
+    chart.setOption(option);
+
+    // ปรับขนาดเมื่อ resize
+    const handleResize = () => chart.resize();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      chart.dispose();
+    };
+  }, [barData, title]);
+
   return (
-    <div className={`bg-white p-6 rounded-xl shadow-sm ${className}`}>
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">{title}</h2>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={barData}
-            margin={{
-              top: 5,
-              right: 30,
-              left: 20,
-              bottom: 5,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="name" 
-              tick={{ fontSize: 12 }}
-              interval={0}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis />
-            <Tooltip 
-              formatter={(value) => [`${value} รายการ`, 'จำนวน']}
-              labelFormatter={(name) => `หมวดหมู่: ${name}`}
-            />
-            <Bar dataKey="count" name="จำนวนเอกสาร">
-              {barData.map((entry, index) => {
-                // ใช้ index+1 เป็น categoryId สำหรับการสร้างสี
-                const color = getCategoryColor(index + 1).primary;
-                return <Cell key={`cell-${index}`} fill={color} />;
-              })}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+    <div className={`bg-white p-4 rounded-lg shadow-sm ${className}`}>
+      <h3 className="text-sm font-medium text-gray-700 mb-3">{title}</h3>
+      <div 
+        ref={chartRef} 
+        className="h-64 w-full"
+      />
     </div>
   );
 }

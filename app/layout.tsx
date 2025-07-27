@@ -22,7 +22,7 @@ export default async function RootLayout({
   
   return (
     <html lang="th" className="scroll-smooth">
-      <body className="font-sans antialiased">
+      <body className="font-seppuri antialiased">
         <SessionProvider session={session}>
           <main className="min-h-[calc(100vh-4rem)]">
             {children}
