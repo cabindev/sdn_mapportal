@@ -155,7 +155,6 @@ function useDocumentData(
     try {
       setIsLoading(true);
       const docs = await getDocuments();
-      console.log('Documents from DB:', docs[0]); // ดูตัวอย่างข้อมูล document แรก
       const docsWithDefaults = docs.map(doc => ({
         ...doc,
         year: (doc as any).year ?? (new Date().getFullYear() + 543),

@@ -1,7 +1,7 @@
 // app/api/documents/view/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/app/lib/db';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 type RouteParams = {
   params: Promise<{ id: string }>
@@ -33,6 +33,7 @@ export async function POST(
     // ล้างแคช
     revalidatePath('/dashboard/documents');
     revalidatePath('/dashboard/map');
+    revalidateTag('documents');
     
     return NextResponse.json({ success: true, viewCount: document.viewCount });
   } catch (error) {
