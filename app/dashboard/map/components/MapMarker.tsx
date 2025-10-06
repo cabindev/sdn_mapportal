@@ -16,8 +16,8 @@ interface MapMarkerProps {
 export default function MapMarker({ document: docData, onHover }: MapMarkerProps) {
   const colorScheme = getCategoryColor(docData.categoryId);
   const [icon, setIcon] = useState<any>(null);
-  const [viewCount, setViewCount] = useState(docData.viewCount);
-  const [downloadCount, setDownloadCount] = useState(docData.downloadCount);
+  const [viewCount, setViewCount] = useState(docData.viewCount || 0);
+  const [downloadCount, setDownloadCount] = useState(docData.downloadCount || 0);
   const [markerSize, setMarkerSize] = useState(16);
   const [circleRadius, setCircleRadius] = useState(14);
   const [showPopup, setShowPopup] = useState(false);
@@ -128,11 +128,31 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
     }
   };
   
+  // ฟังก์ชันโหลดข้อมูลล่าสุดจากฐานข้อมูล
+  const fetchLatestCounts = async () => {
+    try {
+      const response = await fetch(`/api/documents/${docData.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setViewCount(data.viewCount || 0);
+        setDownloadCount(data.downloadCount || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching latest counts:', error);
+    }
+  };
+
   // เปิด/ปิด popup พร้อมป้องกัน event propagation
-  const togglePopup = (e: any) => {
+  const togglePopup = async (e: any) => {
     // ป้องกัน event ไปที่ map click handler
     if (e && e.originalEvent) {
       e.originalEvent.stopPropagation();
+    }
+    
+    if (!showPopup) {
+      // เมื่อเปิด popup ให้นับ view และโหลดข้อมูลล่าสุด
+      await handleViewDocument();
+      await fetchLatestCounts();
     }
     setShowPopup(!showPopup);
   };

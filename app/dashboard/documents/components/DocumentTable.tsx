@@ -6,6 +6,26 @@ import { useState, useOptimistic } from 'react'
 import { deleteDocument } from '@/app/lib/actions/documents/delete'
 import Image from 'next/image'
 
+// ฟังก์ชันสำหรับคำนวณเวลาที่ผ่านมา
+function getTimeAgo(dateString: string): string {
+  const now = new Date()
+  const date = new Date(dateString)
+  const diffInMs = now.getTime() - date.getTime()
+  const diffInSeconds = Math.floor(diffInMs / 1000)
+  const diffInMinutes = Math.floor(diffInSeconds / 60)
+  const diffInHours = Math.floor(diffInMinutes / 60)
+  const diffInDays = Math.floor(diffInHours / 24)
+  const diffInMonths = Math.floor(diffInDays / 30)
+  const diffInYears = Math.floor(diffInDays / 365)
+
+  if (diffInSeconds < 60) return 'เมื่อสักครู่'
+  if (diffInMinutes < 60) return `${diffInMinutes} นาทีที่แล้ว`
+  if (diffInHours < 24) return `${diffInHours} ชั่วโมงที่แล้ว`
+  if (diffInDays < 30) return `${diffInDays} วันที่แล้ว`
+  if (diffInMonths < 12) return `${diffInMonths} เดือนที่แล้ว`
+  return `${diffInYears} ปีที่แล้ว`
+}
+
 // Flexible type ที่รองรับข้อมูลจาก searchDocuments
 interface DocumentItem {
   id: number
@@ -13,6 +33,7 @@ interface DocumentItem {
   description?: string | null
   isPublished: boolean
   createdAt: string
+  updatedAt: string
   coverImage?: string | null
   category?: {
     id?: number
@@ -84,13 +105,17 @@ function DocumentImage({ src, alt, className = "" }: { src?: string | null, alt:
 }
 
 // Author Info Modal Component
-function AuthorInfoModal({ user, isOpen, onClose }: {
+function AuthorInfoModal({ user, document, isOpen, onClose }: {
   user: {
     id: number
     firstName: string
     lastName: string
     email: string
     role: string
+  } | null
+  document?: {
+    createdAt: string
+    updatedAt: string
   } | null
   isOpen: boolean
   onClose: () => void
@@ -147,6 +172,32 @@ function AuthorInfoModal({ user, isOpen, onClose }: {
                 </svg>
                 <span className="text-sm text-slate-600">รหัสผู้ใช้: {user.id}</span>
               </div>
+              {document && (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6m-6 0L8 9m8-2l2 2m-2-2V5a2 2 0 00-2-2H10a2 2 0 00-2 2v2" />
+                    </svg>
+                    <span className="text-sm text-slate-600">
+                      อัปโหลด: {new Date(document.createdAt).toLocaleDateString('th-TH', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  {document.updatedAt && document.updatedAt !== document.createdAt && (
+                    <div className="flex items-center space-x-2">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm text-emerald-600">
+                        ข้อมูลล่าสุด: {getTimeAgo(document.updatedAt)}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -163,6 +214,7 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
   
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [selectedDocument, setSelectedDocument] = useState<any>(null)
   const [showAuthorModal, setShowAuthorModal] = useState(false)
 
   const handleDelete = async (formData: FormData) => {
@@ -268,6 +320,7 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
                     type="button"
                     onClick={() => {
                       setSelectedUser(doc.user)
+                      setSelectedDocument(doc)
                       setShowAuthorModal(true)
                     }}
                     className="text-left hover:bg-slate-50 rounded p-1 -m-1 transition-colors group/author w-full"
@@ -310,13 +363,29 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
               {/* วันที่และการจัดการ */}
               <div className="col-span-2 space-y-1">
                 <div className="text-xs text-slate-600">
-                  {new Date(doc.createdAt).toLocaleDateString('th-TH', {
+                  <div className="font-medium">อัปโหลด:</div>
+                  <div>{new Date(doc.createdAt).toLocaleDateString('th-TH', {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric'
-                  })}
+                  })}</div>
                 </div>
-                <div className="flex items-center space-x-2">
+                {doc.updatedAt && doc.updatedAt !== doc.createdAt && (
+                  <div className="text-xs text-emerald-600">
+                    <div className="font-medium">ข้อมูลล่าสุด:</div>
+                    <div>{getTimeAgo(doc.updatedAt)}</div>
+                    <div className="text-slate-500">
+                      {new Date(doc.updatedAt).toLocaleDateString('th-TH', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center space-x-2 pt-1">
                   <Link
                     href={`/dashboard/documents/edit/${doc.id}`}
                     className="text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 px-2 py-1 rounded transition-colors"
@@ -395,6 +464,7 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
                       type="button"
                       onClick={() => {
                         setSelectedUser(doc.user)
+                        setSelectedDocument(doc)
                         setShowAuthorModal(true)
                       }}
                       className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:shadow-sm transition-shadow ${
@@ -413,28 +483,35 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-slate-500">
-                    {new Date(doc.createdAt).toLocaleDateString('th-TH')}
-                  </span>
-                  
-                  <div className="flex items-center space-x-3">
-                    <Link
-                      href={`/dashboard/documents/${doc.id}/edit`}
-                      className="text-xs font-medium text-slate-600 hover:text-slate-800"
-                    >
-                      แก้ไข
-                    </Link>
-                    <form action={handleDelete} className="inline">
-                      <input type="hidden" name="id" value={doc.id} />
-                      <button
-                        type="submit"
-                        disabled={deletingId === doc.id}
-                        className="text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs text-slate-500">
+                      <div>อัปโหลด: {new Date(doc.createdAt).toLocaleDateString('th-TH')}</div>
+                      {doc.updatedAt && doc.updatedAt !== doc.createdAt && (
+                        <div className="text-emerald-600 mt-1">
+                          ข้อมูลล่าสุด: {getTimeAgo(doc.updatedAt)}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <Link
+                        href={`/dashboard/documents/${doc.id}/edit`}
+                        className="text-xs font-medium text-slate-600 hover:text-slate-800"
                       >
-                        {deletingId === doc.id ? 'ลบ...' : 'ลบ'}
-                      </button>
-                    </form>
+                        แก้ไข
+                      </Link>
+                      <form action={handleDelete} className="inline">
+                        <input type="hidden" name="id" value={doc.id} />
+                        <button
+                          type="submit"
+                          disabled={deletingId === doc.id}
+                          className="text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                        >
+                          {deletingId === doc.id ? 'ลบ...' : 'ลบ'}
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -458,10 +535,12 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
       {/* Author Info Modal */}
       <AuthorInfoModal
         user={selectedUser}
+        document={selectedDocument}
         isOpen={showAuthorModal}
         onClose={() => {
           setShowAuthorModal(false)
           setSelectedUser(null)
+          setSelectedDocument(null)
         }}
       />
     </div>

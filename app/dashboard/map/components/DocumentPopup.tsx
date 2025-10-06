@@ -3,7 +3,27 @@
 
 import { useState, useRef, useEffect } from "react";
 import { DocumentWithCategory } from "@/app/types/document";
-import { Download, MapPin, Calendar, Eye, X, User } from "lucide-react";
+import { Download, MapPin, Calendar, Eye, X, User, Clock } from "lucide-react";
+
+// ฟังก์ชันสำหรับคำนวณเวลาที่ผ่านมา
+function getTimeAgo(dateString: string): string {
+  const now = new Date()
+  const date = new Date(dateString)
+  const diffInMs = now.getTime() - date.getTime()
+  const diffInSeconds = Math.floor(diffInMs / 1000)
+  const diffInMinutes = Math.floor(diffInSeconds / 60)
+  const diffInHours = Math.floor(diffInMinutes / 60)
+  const diffInDays = Math.floor(diffInHours / 24)
+  const diffInMonths = Math.floor(diffInDays / 30)
+  const diffInYears = Math.floor(diffInDays / 365)
+
+  if (diffInSeconds < 60) return 'เมื่อสักครู่'
+  if (diffInMinutes < 60) return `${diffInMinutes} นาทีที่แล้ว`
+  if (diffInHours < 24) return `${diffInHours} ชั่วโมงที่แล้ว`
+  if (diffInDays < 30) return `${diffInDays} วันที่แล้ว`
+  if (diffInMonths < 12) return `${diffInMonths} เดือนที่แล้ว`
+  return `${diffInYears} ปีที่แล้ว`
+}
 
 interface DocumentPopupProps {
   document: DocumentWithCategory & { viewCount: number; downloadCount: number };
@@ -16,6 +36,8 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
+
+  // ลบ useEffect ออก - จะนับเมื่อกดปุ่มแทน
 
   const calculateDocumentAge = (documentYear: number): string => {
     if (!documentYear) return "";
@@ -102,21 +124,40 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
             </div>
             
             {/* Date */}
-            <div className="flex items-center gap-3 text-sm">
-              <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <div className="flex items-start gap-3 text-sm">
+              <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
               <div className="text-gray-900 font-medium">
-                {new Date(document.createdAt).toLocaleDateString('th-TH', {
+                <div>อัปโหลด: {new Date(document.createdAt).toLocaleDateString('th-TH', {
                   day: 'numeric',
                   month: 'long',
                   year: 'numeric'
-                })}
+                })}</div>
                 {document.year && (
-                  <span className="ml-2 text-gray-500 text-xs">
-                    • เอกสารปี พ.ศ. {document.year} ({calculateDocumentAge(document.year)})
-                  </span>
+                  <div className="text-gray-500 text-xs mt-1">
+                    เอกสารปี พ.ศ. {document.year} ({calculateDocumentAge(document.year)})
+                  </div>
                 )}
               </div>
             </div>
+
+            {/* Last Updated */}
+            {document.updatedAt && document.updatedAt !== document.createdAt && (
+              <div className="flex items-center gap-3 text-sm">
+                <Clock className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <div className="text-gray-900 font-medium">
+                  <span className="text-emerald-600">ข้อมูลล่าสุด: {getTimeAgo(document.updatedAt.toString())}</span>
+                  <div className="text-gray-500 text-xs mt-1">
+                    {new Date(document.updatedAt).toLocaleDateString('th-TH', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Views and Downloads */}
             <div className="flex items-center gap-3 text-sm">
