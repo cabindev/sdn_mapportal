@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { DocumentWithCategory } from "@/app/types/document";
-import { Download, MapPin, Calendar, Eye, X } from "lucide-react";
+import { Download, MapPin, Calendar, Eye, X, User } from "lucide-react";
 
 interface DocumentPopupProps {
   document: DocumentWithCategory & { viewCount: number; downloadCount: number };
@@ -80,7 +80,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
         </div>
         
         {/* Content */}
-        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 192px)' }}>
+        <div className="p-6 overflow-y-auto max-h-[calc(85vh-12rem)]">
           {/* Title */}
           <h3 className="text-xl font-medium text-gray-900 mb-4 leading-relaxed">
             {document.title}
@@ -127,6 +127,25 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
                 ดาวน์โหลด {document.downloadCount.toLocaleString()} ครั้ง
               </div>
             </div>
+
+            {/* Uploader */}
+            {document.user && (
+              <div className="flex items-center gap-3 text-sm">
+                <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-900 font-medium">
+                    {document.user.firstName} {document.user.lastName}
+                  </span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                    document.user.role === 'ADMIN' 
+                      ? 'bg-gray-100 text-gray-700' 
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {document.user.role === 'ADMIN' ? 'Admin' : 'สมาชิก'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Description */}
@@ -147,6 +166,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
               
               {isOverflowing && (
                 <button 
+                  type="button"
                   className="mt-2 text-xs text-gray-500 hover:text-gray-700 transition-colors font-medium"
                   onClick={() => setIsExpanded(!isExpanded)}
                 >
@@ -166,7 +186,6 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
               onClick={() => {
               onDownload();
               }}
-              style={{ minWidth: 0 }}
             >
               <Download className="w-4 h-4" />
               ดาวน์โหลด

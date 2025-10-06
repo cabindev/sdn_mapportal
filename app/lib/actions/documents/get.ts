@@ -11,6 +11,15 @@ export const getDocuments = unstable_cache(
       const documents = await prisma.document.findMany({
         include: {
           category: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true
+            }
+          }
         },
         orderBy: {
           createdAt: 'desc'
@@ -36,6 +45,15 @@ export async function getDocumentById(id: number) {
       where: { id },
       include: {
         category: true,
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true
+          }
+        }
       }
     });
 
@@ -60,6 +78,15 @@ export const getPublishedDocuments = unstable_cache(
         },
         include: {
           category: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true
+            }
+          }
         },
         orderBy: {
           createdAt: 'desc'

@@ -83,6 +83,78 @@ function DocumentImage({ src, alt, className = "" }: { src?: string | null, alt:
   )
 }
 
+// Author Info Modal Component
+function AuthorInfoModal({ user, isOpen, onClose }: {
+  user: {
+    id: number
+    firstName: string
+    lastName: string
+    email: string
+    role: string
+  } | null
+  isOpen: boolean
+  onClose: () => void
+}) {
+  if (!isOpen || !user) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-900">ข้อมูลผู้อัปโหลด</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 transition-colors"
+            aria-label="ปิดหน้าต่างข้อมูลผู้อัปโหลด"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="space-y-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center">
+              <span className="text-blue-700 font-semibold text-lg">
+                {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+              </span>
+            </div>
+            <div>
+              <p className="font-medium text-slate-900">{user.firstName} {user.lastName}</p>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                user.role === 'ADMIN' 
+                  ? 'bg-gray-100 text-gray-700' 
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {user.role === 'ADMIN' ? 'Admin' : 'สมาชิก'}
+              </span>
+            </div>
+          </div>
+          
+          <div className="border-t border-slate-200 pt-3">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                </svg>
+                <span className="text-sm text-slate-600">{user.email}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 118 0v2m-4 0a2 2 0 104 0m-4 0v2m0 0h4" />
+                </svg>
+                <span className="text-sm text-slate-600">รหัสผู้ใช้: {user.id}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DocumentTable({ documents }: DocumentTableProps) {
   const [optimisticDocs, removeOptimistically] = useOptimistic(
     documents,
@@ -90,6 +162,8 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
   )
   
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [showAuthorModal, setShowAuthorModal] = useState(false)
 
   const handleDelete = async (formData: FormData) => {
     const id = formData.get('id') as string
@@ -189,18 +263,35 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
 
               {/* ผู้อัปโหลด */}
               <div className="col-span-2 min-w-0">
-                <div className="text-xs text-slate-900 font-medium line-clamp-1">
-                  {doc.user ? `${doc.user.firstName} ${doc.user.lastName}` : 'ไม่ระบุ'}
-                </div>
-                {doc.user && (
-                  <div className="text-xs text-slate-600 mt-0.5">
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                      doc.user.role === 'ADMIN' 
-                        ? 'bg-gray-100 text-gray-700' 
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {doc.user.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : 'สมาชิก'}
-                    </span>
+                {doc.user ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedUser(doc.user)
+                      setShowAuthorModal(true)
+                    }}
+                    className="text-left hover:bg-slate-50 rounded p-1 -m-1 transition-colors group/author w-full"
+                    aria-label={`ดูข้อมูลผู้อัปโหลด ${doc.user.firstName} ${doc.user.lastName}`}
+                  >
+                    <div className="text-xs text-slate-900 font-medium line-clamp-1 group-hover/author:text-blue-600">
+                      {doc.user.firstName} {doc.user.lastName}
+                      <svg className="w-3 h-3 inline ml-1 opacity-0 group-hover/author:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="text-xs text-slate-600 mt-0.5">
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                        doc.user.role === 'ADMIN' 
+                          ? 'bg-gray-100 text-gray-700' 
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {doc.user.role === 'ADMIN' ? 'Admin' : 'สมาชิก'}
+                      </span>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="text-xs text-slate-900 font-medium line-clamp-1">
+                    ไม่ระบุ
                   </div>
                 )}
               </div>
@@ -300,13 +391,24 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
                     {doc.isPublished ? 'เผยแพร่' : 'ไม่เผยแพร่'}
                   </span>
                   {doc.user && (
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      doc.user.role === 'ADMIN' 
-                        ? 'bg-gray-100 text-gray-700' 
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedUser(doc.user)
+                        setShowAuthorModal(true)
+                      }}
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:shadow-sm transition-shadow ${
+                        doc.user.role === 'ADMIN' 
+                          ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      }`}
+                      aria-label={`ดูข้อมูลผู้อัปโหลด ${doc.user.firstName} ${doc.user.lastName}`}
+                    >
                       {doc.user.firstName} {doc.user.lastName}
-                    </span>
+                      <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
                   )}
                 </div>
 
@@ -352,6 +454,16 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
           <p className="text-slate-500 font-normal text-sm">ไม่มีเอกสารแสดง</p>
         </div>
       )}
+
+      {/* Author Info Modal */}
+      <AuthorInfoModal
+        user={selectedUser}
+        isOpen={showAuthorModal}
+        onClose={() => {
+          setShowAuthorModal(false)
+          setSelectedUser(null)
+        }}
+      />
     </div>
   )
 }
