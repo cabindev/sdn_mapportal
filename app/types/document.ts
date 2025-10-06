@@ -1,5 +1,5 @@
 // types/document.ts
-import { CategoryDoc, Document } from '@prisma/client'
+import { CategoryDoc, Document, User, Role } from '@prisma/client'
 
 // สำหรับข้อมูลตำแหน่ง
 export interface LocationData {
@@ -23,9 +23,16 @@ export interface RegionData {
   province_code: number;
 }
 
-// สำหรับเอกสารที่มีข้อมูลหมวดหมู่
+// สำหรับเอกสารที่มีข้อมูลหมวดหมู่และผู้อัปโหลด
 export interface DocumentWithCategory extends Document {
   category: CategoryDoc;
+  user?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: Role;
+  };
   isLatest?: boolean;
   year: number | null;  
 }

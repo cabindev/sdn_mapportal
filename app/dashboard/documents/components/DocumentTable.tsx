@@ -19,6 +19,13 @@ interface DocumentItem {
     name: string
     [key: string]: any
   } | null
+  user?: {
+    id: number
+    firstName: string
+    lastName: string
+    email: string
+    role: string
+  } | null
   [key: string]: any // เพิ่ม flexibility สำหรับ fields อื่นๆ
 }
 
@@ -119,13 +126,16 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
           <div className="col-span-2 text-xs font-semibold text-slate-700 uppercase tracking-wide">
             รูปภาพ
           </div>
-          <div className="col-span-4 text-xs font-semibold text-slate-700 uppercase tracking-wide">
+          <div className="col-span-3 text-xs font-semibold text-slate-700 uppercase tracking-wide">
             ชื่อเอกสาร
           </div>
           <div className="col-span-2 text-xs font-semibold text-slate-700 uppercase tracking-wide">
             ประเภท
           </div>
           <div className="col-span-2 text-xs font-semibold text-slate-700 uppercase tracking-wide">
+            ผู้อัปโหลด
+          </div>
+          <div className="col-span-1 text-xs font-semibold text-slate-700 uppercase tracking-wide">
             สถานะ
           </div>
           <div className="col-span-2 text-xs font-semibold text-slate-700 uppercase tracking-wide">
@@ -154,7 +164,7 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
               </div>
 
               {/* ชื่อเอกสาร */}
-              <div className="col-span-4 min-w-0">
+              <div className="col-span-3 min-w-0">
                 <Link 
                   href={`/dashboard/documents/${doc.id}`}
                   className="block group/link"
@@ -177,8 +187,26 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
                 </span>
               </div>
 
+              {/* ผู้อัปโหลด */}
+              <div className="col-span-2 min-w-0">
+                <div className="text-xs text-slate-900 font-medium line-clamp-1">
+                  {doc.user ? `${doc.user.firstName} ${doc.user.lastName}` : 'ไม่ระบุ'}
+                </div>
+                {doc.user && (
+                  <div className="text-xs text-slate-600 mt-0.5">
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                      doc.user.role === 'ADMIN' 
+                        ? 'bg-gray-100 text-gray-700' 
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {doc.user.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : 'สมาชิก'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
               {/* สถานะ */}
-              <div className="col-span-2">
+              <div className="col-span-1">
                 <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
                   doc.isPublished 
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50' 
@@ -271,6 +299,15 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
                   }`}>
                     {doc.isPublished ? 'เผยแพร่' : 'ไม่เผยแพร่'}
                   </span>
+                  {doc.user && (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                      doc.user.role === 'ADMIN' 
+                        ? 'bg-gray-100 text-gray-700' 
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {doc.user.firstName} {doc.user.lastName}
+                    </span>
+                  )}
                 </div>
 
                 {/* Footer */}

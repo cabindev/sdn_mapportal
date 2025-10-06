@@ -33,7 +33,18 @@ export async function searchDocuments({
     const [documents, totalDocuments, totalStats] = await Promise.all([
       prisma.document.findMany({
         where,
-        include: { category: true },
+        include: { 
+          category: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true
+            }
+          }
+        },
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
