@@ -15,8 +15,8 @@ export default function ProvinceMarkers() {
       const icon = L.divIcon({
         html: `
           <div style="
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             background-color: rgba(255, 149, 0, 0.7);
             border-radius: 50%;
             border: 1px solid white;
@@ -24,8 +24,8 @@ export default function ProvinceMarkers() {
           "></div>
         `,
         className: 'custom-marker',
-        iconSize: [6, 6],
-        iconAnchor: [3, 3],
+        iconSize: [5, 5],
+        iconAnchor: [2.5, 2.5],
       });
       
       setProvinceIcon(icon);

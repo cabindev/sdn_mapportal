@@ -38,36 +38,41 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
     if (typeof window === 'undefined') return;
     
     import('leaflet').then(L => {
+      const actualMarkerSize = markerSize * 0.8; // ขนาดจริงของ marker
+      const pulseSize = actualMarkerSize + 8; // pulse ring ใหญ่กว่า marker 8px
+      const containerSize = pulseSize + 4; // container ใหญ่พอที่จะบรรจุทั้ง marker และ pulse
+
       const newIcon = L.default.divIcon({
         html: `
-          <div style="position: relative;">
+          <div style="position: relative; width: ${containerSize}px; height: ${containerSize}px; display: flex; align-items: center; justify-content: center;">
             <div style="
-              width: ${markerSize}px;
-              height: ${markerSize}px;
+              position: absolute;
+              width: ${actualMarkerSize}px;
+              height: ${actualMarkerSize}px;
               background-color: ${colorScheme.primary};
               border-radius: 50%;
-              border: ${markerSize > 12 ? 2 : 1}px solid white;
+              border: 1px solid white;
               box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+              z-index: 2;
             "></div>
             ${docData.isLatest ? `
               <div style="
                 position: absolute;
-                top: -4px;
-                left: -4px;
-                right: -4px;
-                bottom: -4px;
+                width: ${pulseSize}px;
+                height: ${pulseSize}px;
                 border-radius: 50%;
                 border: 2px solid ${colorScheme.primary};
                 opacity: 0.7;
                 animation: pulse 1.5s infinite;
+                z-index: 1;
               "></div>
             ` : ''}
           </div>
         `,
         className: 'custom-marker',
-        iconSize: [markerSize, markerSize],
-        iconAnchor: [markerSize/2, markerSize/2],
-        popupAnchor: [0, -markerSize/2]
+        iconSize: [containerSize, containerSize],
+        iconAnchor: [containerSize/2, containerSize/2],
+        popupAnchor: [0, -containerSize/2]
       });
       
       // เพิ่ม animation สำหรับ pulse effect
