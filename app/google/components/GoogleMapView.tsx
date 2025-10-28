@@ -61,6 +61,7 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [hoveredDocId, setHoveredDocId] = useState<number | null>(null);
+  const [viewCounts, setViewCounts] = useState<Record<number, number>>({});
 
   // ✅ useEffect ต้องอยู่หลัง useState เสมอ
   useEffect(() => {
@@ -123,11 +124,31 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
   const handleHoverDocument = useCallback((documentId: number | null) => {
     setHoveredDocId(documentId);
   }, []);
-  
+
+  // ฟังก์ชันเพิ่มจำนวนการดู
+  const handleViewDocument = useCallback(async (docId: number) => {
+    try {
+      const response = await fetch(`/api/documents/view/${docId}`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        setViewCounts(prev => ({
+          ...prev,
+          [docId]: (prev[docId] || 0) + 1
+        }));
+      }
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
+    }
+  }, []);
+
   const handleClickDocument = useCallback((document: DocumentWithCategory) => {
     setSelectedDoc(document);
     setExpandedInfo(false);
-  }, []);
+    // เพิ่ม view count เมื่อคลิก
+    handleViewDocument(document.id);
+  }, [handleViewDocument]);
   
   const handleSearchClick = useCallback(() => {
     console.log('Search clicked');
@@ -237,12 +258,13 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
           ).map(doc => {
             const colorScheme = getCategoryColor(doc.categoryId);
             return (
-              <Marker 
+              <Marker
                 key={doc.id}
                 position={{ lat: doc.latitude, lng: doc.longitude }}
                 onClick={() => {
                   setSelectedDoc(doc);
                   setExpandedInfo(false);
+                  handleViewDocument(doc.id);
                 }}
                 icon={{
                   url: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 24 36"><path fill="${encodeURIComponent(colorScheme.primary)}" stroke="white" stroke-width="2" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
@@ -265,7 +287,10 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
               }}
             >
               <GoogleDocumentPopup
-                document={selectedDoc}
+                document={{
+                  ...selectedDoc,
+                  viewCount: (selectedDoc.viewCount || 0) + (viewCounts[selectedDoc.id] || 0)
+                }}
                 position={{ lat: selectedDoc.latitude, lng: selectedDoc.longitude }}
                 onClose={handleCloseInfoWindow}
                 isExpanded={expandedInfo}

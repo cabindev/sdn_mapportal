@@ -148,6 +148,97 @@ app/
 - Professional color scheme suitable for government/corporate environments
 - Clean architecture supports future enhancements and maintenance
 
+## Latest Development Session
+**Date:** October 6, 2025  
+**Focus:** View Count Tracking and Document Statistics Implementation
+
+### View Count System Implementation
+
+#### 1. Automatic View Tracking
+- **Map Marker Interaction:** Clicking any map marker now automatically increments viewCount
+- **Real-time Updates:** Popup displays current view and download counts from database
+- **Separate Counting Logic:**
+  - View count: Incremented when clicking map markers
+  - Download count: Incremented when clicking download button
+
+#### 2. API Infrastructure
+- **New Endpoint:** `/api/documents/[id]/route.ts`
+  - GET method to fetch latest viewCount and downloadCount
+  - Used for real-time display updates in popups
+- **Enhanced Existing APIs:**
+  - `/api/documents/view/[id]` for incrementing view counts
+  - `/api/documents/download/[id]` for incrementing download counts
+
+#### 3. Component Updates
+
+**MapMarker.tsx:**
+- Added `fetchLatestCounts()` function to get current statistics
+- Modified `togglePopup()` to call `handleViewDocument()` on marker click
+- Integrated view counting with popup display logic
+
+**DocumentPopup.tsx:**
+- Separated view and download button functionality
+- Download button only increments downloadCount
+- Removed automatic view counting from popup opening
+
+**DynamicMapView.tsx:**
+- Added debug logging for document data structure
+- Enhanced error handling for view count display
+
+#### 4. Database Integration
+- Confirmed viewCount and downloadCount fields exist in Prisma schema
+- Default values set to 0 for new documents
+- Proper increment operations using Prisma's atomic updates
+
+### Technical Implementation Details
+
+#### View Count Flow:
+1. User clicks map marker → `togglePopup()` called
+2. `handleViewDocument()` sends POST to `/api/documents/view/[id]`
+3. Database increments viewCount atomically
+4. `fetchLatestCounts()` retrieves updated counts
+5. Popup displays current statistics
+
+#### Download Count Flow:
+1. User clicks download button in popup
+2. `handleDownload()` sends POST to `/api/documents/download/[id]`
+3. Database increments downloadCount
+4. File download initiates
+
+#### Code Structure:
+```typescript
+// MapMarker.tsx - Enhanced popup logic
+const togglePopup = async (e: any) => {
+  if (!showPopup) {
+    await handleViewDocument();     // Count view
+    await fetchLatestCounts();      // Get latest stats
+  }
+  setShowPopup(!showPopup);
+};
+
+// API endpoint for fetching current counts
+// /api/documents/[id]/route.ts
+export async function GET(request, { params }) {
+  const document = await prisma.document.findUnique({
+    where: { id: documentId },
+    select: { id: true, viewCount: true, downloadCount: true }
+  });
+  return NextResponse.json(document);
+}
+```
+
+### User Experience Improvements
+- **Immediate Feedback:** View counts update instantly when interacting with markers
+- **Accurate Statistics:** Real-time data ensures displayed counts reflect current database state
+- **Intuitive Interaction:** Natural user flow where viewing content (clicking marker) counts as a view
+- **Performance Optimized:** Minimal API calls only when needed
+
+### Testing and Validation
+- Verified view count increments on each marker click
+- Confirmed download count increments only on download button clicks
+- Tested popup display with real-time count updates
+- Validated database consistency and atomic operations
+
 ---
-*Last updated: July 27, 2025*  
+*Last updated: October 6, 2025*  
 *Generated with Claude Code assistance*

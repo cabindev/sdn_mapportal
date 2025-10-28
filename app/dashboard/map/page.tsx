@@ -10,6 +10,7 @@ import CircleLoader from "./components/CircleLoader"
 
 // Dynamic import for map component
 const DynamicMapView = dynamic(() => import("./components/DynamicMapView"), { ssr: false })
+const RecentUpdateNotification = dynamic(() => import("./components/RecentUpdateNotification"), { ssr: false })
 
 export default function MapPage() {
   const [categories, setCategories] = useState<CategoryDoc[]>([])
@@ -96,6 +97,9 @@ export default function MapPage() {
         categories={categories}
         documents={documents}
       />
+
+      {/* Recent Update Notification */}
+      <RecentUpdateNotification documents={documents} />
     </div>
   )
 }
