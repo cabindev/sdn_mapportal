@@ -1,7 +1,7 @@
 // app/dashboard/map/components/MapMarker.tsx
 'use client'
 
-import { Marker, CircleMarker, useMap, useMapEvent } from 'react-leaflet'
+import { Marker, CircleMarker, useMap } from 'react-leaflet'
 import { DocumentWithCategory } from '@/app/types/document'
 import { getCategoryColor } from '@/app/utils/colorGenerator'
 import { useEffect, useState } from 'react'
@@ -22,16 +22,29 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
   const [circleRadius, setCircleRadius] = useState(14);
   const [showPopup, setShowPopup] = useState(false);
   const map = useMap();
-  
+
   // ติดตามการเปลี่ยนแปลงระดับการซูม
-  useMapEvent('zoom', () => {
-    const zoomLevel = map.getZoom();
-    const newSize = Math.max(10, Math.min(16, 6 + zoomLevel * 0.8));
-    const newRadius = Math.max(10, Math.min(14, 4 + zoomLevel * 0.8));
-    
-    setMarkerSize(newSize);
-    setCircleRadius(newRadius);
-  });
+  useEffect(() => {
+    const handleZoom = () => {
+      const zoomLevel = map.getZoom();
+      const newSize = Math.max(10, Math.min(16, 6 + zoomLevel * 0.8));
+      const newRadius = Math.max(10, Math.min(14, 4 + zoomLevel * 0.8));
+
+      setMarkerSize(newSize);
+      setCircleRadius(newRadius);
+    };
+
+    // Set initial size based on current zoom
+    handleZoom();
+
+    // Add event listener
+    map.on('zoom', handleZoom);
+
+    // Cleanup function to remove event listener
+    return () => {
+      map.off('zoom', handleZoom);
+    };
+  }, [map]);
   
   // สร้าง icon สำหรับมาร์กเกอร์
   useEffect(() => {
