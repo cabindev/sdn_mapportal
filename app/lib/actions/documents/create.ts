@@ -17,15 +17,24 @@ export async function createDocument(formData: FormData) {
   try {
     // ดึงข้อมูล session ด้วย getServerSession
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       throw new Error("คุณต้องเข้าสู่ระบบก่อนทำรายการนี้");
     }
-    
+
     // ตรวจสอบว่ามี userId หรือไม่
     const userId = session.user.id;
     if (!userId) {
       throw new Error("ไม่สามารถระบุตัวตนผู้ใช้ได้");
+    }
+
+    // ตรวจสอบว่า user มีอยู่ในฐานข้อมูลจริง
+    const userExists = await prisma.user.findUnique({
+      where: { id: typeof userId === 'string' ? parseInt(userId) : userId }
+    });
+
+    if (!userExists) {
+      throw new Error("ไม่พบข้อมูลผู้ใช้ในระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
     }
 
     // 1. ดึงข้อมูลจาก FormData

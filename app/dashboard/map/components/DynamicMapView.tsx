@@ -15,8 +15,11 @@ import "leaflet/dist/leaflet.css";
 import CircleLoader from "./CircleLoader";
 import TambonSearch from "./TambonSearch";
 import LocationMarker from "./LocationMarker";
+import SearchLocationMarker from "./SearchLocationMarker";
+import CurrentLocationMarker from "./CurrentLocationMarker";
 import ProvinceMarkers from "./ProvinceMarkers";
 import LeafletProvinceOverlay from "./LeafletProvinceOverlay";
+import ProvinceCircleOverlay from "./ProvinceCircleOverlay";
 import LeftNavbar from "./LeftNavbar";
 import RightSidebar from "./RightSidebar";
 import { useSession } from "next-auth/react";
@@ -110,6 +113,9 @@ interface DynamicMapViewProps {
   enableSearch?: boolean;
   enableNavbar?: boolean;
   enableSidebar?: boolean;
+  searchLocation?: LocationData | null;
+  currentLocation?: { lat: number; lng: number } | null;
+  currentProvince?: string | null;
 }
 
 interface MapState {
@@ -231,7 +237,10 @@ export default function DynamicMapView({
   enableDocumentForm = true,
   enableSearch = true,
   enableNavbar = true,
-  enableSidebar = true
+  enableSidebar = true,
+  searchLocation = null,
+  currentLocation = null,
+  currentProvince = null
 }: DynamicMapViewProps) {
   const { data: session, status } = useSession();
   const pathname = usePathname(); // เพิ่มการใช้ pathname
@@ -420,6 +429,25 @@ export default function DynamicMapView({
             <LocationMarker onSelectLocation={handleSelectLocation} />
           )}
 
+          {/* แสดง Search Location Marker เมื่อมีการค้นหา */}
+          {searchLocation && (
+            <SearchLocationMarker location={searchLocation} />
+          )}
+
+          {/* แสดง Current Location Marker */}
+          {currentLocation && (
+            <CurrentLocationMarker location={currentLocation} />
+          )}
+
+          {/* แสดง Province Circle Overlay เมื่อมีข้อมูลจังหวัด */}
+          {currentLocation && currentProvince && (
+            <ProvinceCircleOverlay
+              currentProvince={currentProvince}
+              currentLocation={currentLocation}
+              documents={documents}
+            />
+          )}
+
           <ZoomControl position="topright" />
           
           {/* Navigation Components */}
@@ -429,6 +457,7 @@ export default function DynamicMapView({
               categories={categories}
               onHoverDocument={handleHoverDocument}
               onClickDocument={handleClickDocument}
+              currentProvince={currentProvince}
             />
           )}
 

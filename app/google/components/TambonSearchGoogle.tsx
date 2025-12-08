@@ -1,16 +1,16 @@
-//app/dashboard/map/components/TambonSearch.tsx
+// app/google/components/TambonSearchGoogle.tsx
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, ChangeEvent } from "react";
-import tambonData from "@/app/data/tambon.json"; 
+import tambonData from "@/app/data/tambon.json";
 import { LocationData } from "@/app/types/document";
 import { toast } from "react-hot-toast";
 
-interface TambonSearchProps {
+interface TambonSearchGoogleProps {
   onSelectLocation: (location: LocationData) => void;
 }
 
-export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
+export default function TambonSearchGoogle({ onSelectLocation }: TambonSearchGoogleProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -98,7 +98,7 @@ export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
 
   return (
     <div className="relative w-full max-w-[280px] sm:max-w-sm md:max-w-md mx-auto">
-      {/* ช่องค้นหาที่ปรับตามภาพ - ขนาดเล็กลง */}
+      {/* ช่องค้นหา - ใช้ style เดียวกับ TambonSearch */}
       <div className="flex items-center bg-black/80 rounded-lg overflow-hidden border border-gray-700 shadow-lg">
         <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 text-gray-400 ml-1">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -132,8 +132,8 @@ export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
           </button>
         )}
       </div>
-      
-      {/* แสดงรายการที่กรองได้ - responsive และเล็กลง */}
+
+      {/* แสดงรายการที่กรองได้ */}
       {debouncedSearchTerm && filteredTambons.length > 0 && (
         <ul className="absolute z-10 w-full bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg mt-1 max-h-48 sm:max-h-60 overflow-auto shadow-xl">
           {filteredTambons.map((item, index) => (

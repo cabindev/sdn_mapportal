@@ -1,7 +1,7 @@
 // app/dashboard/map/components/LeftNavbar.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useMap } from "react-leaflet";
 import Link from "next/link";
@@ -18,6 +18,7 @@ interface LeftNavbarProps {
   onClickDocument?: (document: DocumentWithCategory) => void;
   defaultCenter?: [number, number];
   defaultZoom?: number;
+  currentProvince?: string | null;
 }
 
 export default function LeftNavbar({
@@ -27,6 +28,7 @@ export default function LeftNavbar({
   onClickDocument,
   defaultCenter = [13.7563, 100.5018],
   defaultZoom = 6,
+  currentProvince = null,
 }: LeftNavbarProps) {
   const { data: session, status } = useSession();
   const map = useMap();
@@ -48,6 +50,13 @@ export default function LeftNavbar({
     }
   });
 
+  // เปิด popup อัตโนมัติเมื่อมีข้อมูลจังหวัด
+  useEffect(() => {
+    if (currentProvince) {
+      setIsControlsOpen(true);
+    }
+  }, [currentProvince]);
+
   // Handle sign out
   const handleSignOut = async () => {
     try {
@@ -68,6 +77,24 @@ export default function LeftNavbar({
       month: "short",
       day: "numeric",
     });
+
+  // คำนวณสถิติเอกสารในจังหวัดปัจจุบัน
+  const provinceStats = currentProvince
+    ? (() => {
+        const provinceDocuments = documents.filter(
+          (doc: any) => doc.province === currentProvince
+        );
+        const categoryCount = new Set(
+          provinceDocuments.map((doc) => doc.categoryId)
+        ).size;
+
+        return {
+          totalDocuments: provinceDocuments.length,
+          categoryCount,
+          hasData: provinceDocuments.length > 0,
+        };
+      })()
+    : null;
 
   // Hover docs
   const handleMouseEnter = (doc: DocumentWithCategory) => {
@@ -142,9 +169,26 @@ export default function LeftNavbar({
               <Layers className="h-5 w-5 text-gray-700" />
               <h3 className="text-gray-800 font-medium">ชั้นข้อมูลเชิงพื้นที่</h3>
             </div>
-            <p className="text-sm text-gray-600 mt-1">
-              พื้นที่ : ผลสำเร็จ
-            </p>
+            {provinceStats && currentProvince ? (
+              <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm font-medium text-blue-900">
+                  📍 {currentProvince}
+                </p>
+                {provinceStats.hasData ? (
+                  <p className="text-xs text-blue-700 mt-1">
+                    {provinceStats.totalDocuments} เอกสาร • {provinceStats.categoryCount} หมวดหมู่
+                  </p>
+                ) : (
+                  <p className="text-xs text-amber-700 mt-1">
+                    ⚠️ ยังไม่มีข้อมูลในจังหวัดนี้
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600 mt-1">
+                พื้นที่ : ผลสำเร็จ
+              </p>
+            )}
           </div>
 
           {/* Controls */}
@@ -164,6 +208,7 @@ export default function LeftNavbar({
             {/* Recent Documents Section */}
             <div className="border-t border-gray-200 pt-3">
               <button
+                type="button"
                 onClick={() => toggleSection('documents')}
                 className="w-full flex items-center justify-between p-2 hover:bg-gray-100 rounded-lg transition-colors group"
               >
@@ -310,6 +355,7 @@ export default function LeftNavbar({
                   </div>
                   
                   <button
+                    type="button"
                     onClick={handleSignOut}
                     className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >

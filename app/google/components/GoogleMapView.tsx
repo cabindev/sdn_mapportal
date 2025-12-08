@@ -3,12 +3,14 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-import { DocumentWithCategory } from '@/app/types/document';
+import { DocumentWithCategory, LocationData } from '@/app/types/document';
 import { getCategoryColor } from '@/app/utils/colorGenerator';
 import GoogleLeftNavbar from './GoogleLeftNavbar';
 import GoogleRightSidebar from './GoogleRightSidebar';
 import GoogleDocumentPopup from './GoogleDocumentPopup';
 import GoogleProvinceOverlay from './GoogleProvinceOverlay';
+import GoogleProvinceCircleOverlay from './GoogleProvinceCircleOverlay';
+import TambonSearchGoogle from './TambonSearchGoogle';
 import { getCategories } from '@/app/lib/actions/categories/get';
 
 const getContainerStyle = (fullscreen: boolean) => ({
@@ -46,9 +48,11 @@ interface GoogleMapViewProps {
   onMapLoad?: (map: google.maps.Map) => void;
   fullscreen?: boolean;
   showNavigation?: boolean;
+  currentLocation?: { lat: number; lng: number } | null;
+  currentProvince?: string | null;
 }
 
-export default function GoogleMapView({ documents, onMapLoad, fullscreen = false, showNavigation = false }: GoogleMapViewProps) {
+export default function GoogleMapView({ documents, onMapLoad, fullscreen = false, showNavigation = false, currentLocation = null, currentProvince = null }: GoogleMapViewProps) {
   // ✅ ประกาศ hooks ทั้งหมดในลำดับที่เหมือนกันเสมอ
   const [selectedDoc, setSelectedDoc] = useState<DocumentWithCategory | null>(null);
   const [expandedInfo, setExpandedInfo] = useState(false);
@@ -62,6 +66,7 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [hoveredDocId, setHoveredDocId] = useState<number | null>(null);
   const [viewCounts, setViewCounts] = useState<Record<number, number>>({});
+  const [searchLocation, setSearchLocation] = useState<LocationData | null>(null);
 
   // ✅ useEffect ต้องอยู่หลัง useState เสมอ
   useEffect(() => {
@@ -161,6 +166,23 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
     }
   }, [mapInstance]);
 
+  const handleSelectLocation = useCallback((location: LocationData) => {
+    setSearchLocation(location);
+    // Fly to the searched location
+    if (mapInstance) {
+      mapInstance.panTo({ lat: location.lat, lng: location.lng });
+      mapInstance.setZoom(13);
+    }
+  }, [mapInstance]);
+
+  // Auto fly to current location when it changes
+  useEffect(() => {
+    if (currentLocation && mapInstance) {
+      mapInstance.panTo({ lat: currentLocation.lat, lng: currentLocation.lng });
+      mapInstance.setZoom(15);
+    }
+  }, [currentLocation, mapInstance]);
+
   // Debug information
   console.log('🔑 API Key found:', !!apiKey);
   console.log('🔑 API Key length:', apiKey.length);
@@ -223,6 +245,13 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
 
   return (
     <div className={wrapperClass}>
+      {/* Search Bar - แสดงใน fullscreen mode */}
+      {fullscreen && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] w-[90%] sm:w-auto">
+          <TambonSearchGoogle onSelectLocation={handleSelectLocation} />
+        </div>
+      )}
+
       {!fullscreen && (
         <h2 className="text-xl font-semibold text-gray-800 mb-4">แผนที่เอกสารด้วย Google Maps</h2>
       )}
@@ -252,8 +281,8 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
           onLoad={handleMapLoad}
           options={mapOptions}
         >
-          {/* Markers */}
-          {isLoaded && documents.filter(doc => 
+          {/* Document Markers */}
+          {isLoaded && documents.filter(doc =>
             selectedCategories.length === 0 || selectedCategories.includes(doc.categoryId)
           ).map(doc => {
             const colorScheme = getCategoryColor(doc.categoryId);
@@ -275,6 +304,50 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
               />
             );
           })}
+
+          {/* Search Location Marker */}
+          {isLoaded && searchLocation && (
+            <Marker
+              position={{ lat: searchLocation.lat, lng: searchLocation.lng }}
+              icon={{
+                url: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"><path fill="%23EF4444" stroke="white" stroke-width="2" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
+                scaledSize: new google.maps.Size(40, 40),
+                anchor: new google.maps.Point(20, 40)
+              }}
+              title="ตำแหน่งที่ค้นหา"
+            />
+          )}
+
+          {/* Current Location Marker (Blue Dot) */}
+          {isLoaded && currentLocation && (
+            <>
+              {/* Accuracy circle */}
+              <Marker
+                position={{ lat: currentLocation.lat, lng: currentLocation.lng }}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 8,
+                  fillColor: '#3B82F6',
+                  fillOpacity: 1,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 3,
+                }}
+                title="คุณอยู่ที่นี่"
+              />
+              {/* Outer ring for pulse effect */}
+              <Marker
+                position={{ lat: currentLocation.lat, lng: currentLocation.lng }}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 50,
+                  fillColor: '#3B82F6',
+                  fillOpacity: 0.1,
+                  strokeColor: '#3B82F6',
+                  strokeWeight: 1,
+                }}
+              />
+            </>
+          )}
           
           {/* InfoWindow with GoogleDocumentPopup */}
           {selectedDoc && (
@@ -298,6 +371,17 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
               />
             </InfoWindow>
           )}
+
+          {/* Province Circle Overlay - แสดงวงกลมจังหวัดเมื่อมีข้อมูล */}
+          {isLoaded && currentLocation && currentProvince && (
+            <GoogleProvinceCircleOverlay
+              currentProvince={currentProvince}
+              currentLocation={currentLocation}
+              documents={documents}
+              map={mapInstance}
+            />
+          )}
+
           {/* Province Overlay */}
           <GoogleProvinceOverlay map={mapInstance} />
         </GoogleMap>
@@ -315,6 +399,7 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
                 onHoverDocument={handleHoverDocument}
                 onClickDocument={handleClickDocument}
                 onFlyTo={handleFlyTo}
+                currentProvince={currentProvince}
               />
             </div>
           </div>
