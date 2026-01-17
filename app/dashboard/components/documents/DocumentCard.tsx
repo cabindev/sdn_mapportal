@@ -63,9 +63,14 @@ export default function DocumentCard({
       {/* ปรับส่วนของรูปภาพให้เป็นอัตราส่วน 16:9 */}
       <div className="relative w-full" style={{ paddingTop: "56.25%" }}> {/* 56.25% คือ อัตราส่วน 9/16 = 0.5625 */}
         {!imageUrl ? (
-          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-            <span className="text-gray-400">ไม่มีรูปปก</span>
-          </div>
+          <div
+            className="absolute inset-0 bg-gray-100"
+            style={{
+              backgroundImage: `url('/cover.svg')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          />
         ) : imageError ? (
           <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
             <span className="text-gray-400">ไม่สามารถโหลดรูปภาพได้</span>

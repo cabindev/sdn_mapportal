@@ -35,6 +35,7 @@ interface DocumentPopupProps {
 export default function DocumentPopup({ document, onClose, onView, onDownload }: DocumentPopupProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   // ลบ useEffect ออก - จะนับเมื่อกดปุ่มแทน
@@ -71,21 +72,14 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
       
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] max-w-[90vw] max-h-[85vh] bg-white rounded-2xl shadow-xl z-[1000] overflow-hidden">
         
-        {/* Header with Image */}
-        <div className="relative h-48 bg-gray-50 overflow-hidden">
-          {document.coverImage ? (
-            <img 
-              src={document.coverImage} 
-              alt={document.title} 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="flex items-center justify-center w-full h-full">
-              <div className="w-16 h-16 rounded-xl bg-gray-200 flex items-center justify-center">
-                <div className="text-2xl">📄</div>
-              </div>
-            </div>
-          )}
+        {/* Header with Image - 16:9 aspect ratio */}
+        <div className="relative w-full bg-gray-50 overflow-hidden" style={{ paddingTop: "56.25%" }}>
+          <img
+            src={imageError ? '/cover.svg' : (document.coverImage || '/cover.svg')}
+            alt={document.title}
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
           
           {/* Category Badge */}
           <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-gray-700">

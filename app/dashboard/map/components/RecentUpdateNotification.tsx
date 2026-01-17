@@ -44,7 +44,7 @@ export default function RecentUpdateNotification({
   }
 
   return (
-    <div className="fixed bottom-6 left-6 z-[900] animate-slide-up">
+    <div className="hidden md:block fixed bottom-6 left-6 z-[900] animate-slide-up">
       <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-[320px] border border-gray-100">
         {/* Header */}
         <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-3 py-2 flex items-center justify-between">
@@ -64,17 +64,14 @@ export default function RecentUpdateNotification({
         <div className="p-3">
           {/* Image */}
           <div className="relative h-32 bg-gray-100 rounded-lg overflow-hidden mb-2">
-            {latestDocument.coverImage ? (
-              <img
-                src={latestDocument.coverImage}
-                alt={latestDocument.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="flex items-center justify-center w-full h-full">
-                <div className="text-4xl">📄</div>
-              </div>
-            )}
+            <img
+              src={latestDocument.coverImage || '/cover.svg'}
+              alt={latestDocument.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = '/cover.svg';
+              }}
+            />
 
             {/* Category Badge */}
             {latestDocument.category && (
