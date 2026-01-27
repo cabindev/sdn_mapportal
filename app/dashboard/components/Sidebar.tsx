@@ -115,14 +115,14 @@ export default function Sidebar({ user }: SidebarProps) {
       <div className="flex items-center justify-between h-16 px-4 border-b border-neutral-200">
         {!sidebarCollapsed ? (
           <Link href="/dashboard" className="flex items-center space-x-2" onClick={handleMenuClick}>
-            <div className="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-neutral-800 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">SDN</span>
             </div>
             <span className="font-semibold text-neutral-900">Map Portal</span>
           </Link>
         ) : (
           <Link href="/dashboard" className="mx-auto" onClick={handleMenuClick}>
-            <div className="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-neutral-800 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">SDN</span>
             </div>
           </Link>

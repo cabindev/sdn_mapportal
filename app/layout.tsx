@@ -6,6 +6,7 @@ import SessionProvider from "./components/SessionProvider";
 import { getServerSession } from "next-auth";
 import authOptions from "./lib/configs/auth/authOptions";
 import { Toaster } from "sonner";
+import FloatingDashboardButton from "./components/FloatingDashboardButton";
 
 export const metadata: Metadata = { 
   title: "SDN Map-portal",
@@ -53,6 +54,7 @@ export default async function RootLayout({
           <main className="min-h-[calc(100vh-4rem)]">
             {children}
           </main>
+          <FloatingDashboardButton />
           <Toaster position="top-center" expand={true} richColors />
         </SessionProvider>
       </body>
