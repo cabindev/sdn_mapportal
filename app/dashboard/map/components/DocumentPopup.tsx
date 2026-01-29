@@ -96,7 +96,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
         </div>
         
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(85vh-12rem)]">
+        <div className="p-6 pb-20 overflow-y-auto max-h-[calc(85vh-12rem)]">
           {/* Title */}
           <h3 className="text-xl font-medium text-gray-900 mb-4 leading-relaxed">
             {document.title}
