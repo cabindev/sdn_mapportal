@@ -1,0 +1,107 @@
+name: Deploy to Plesk Server
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: './package-lock.json'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build application
+      run: npm run build
+      env:
+        NODE_ENV: production
+        
+    - name: Create deployment package
+      run: |
+        tar -czf deployment.tar.gz \
+          --exclude=node_modules \
+          --exclude=.git \
+          --exclude=.env.local \
+          --exclude=.next \
+          .
+        
+    - name: Deploy to Plesk Server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        port: ${{ secrets.DEPLOY_PORT || '22' }}
+        script: |
+          # สร้างไดเรกทอรีสำรองและทำสำรอง
+          cd ${{ secrets.DEPLOY_PATH }}/..
+          if [ -d "backup-$(date +%Y%m%d)" ]; then
+            rm -rf backup-$(date +%Y%m%d)
+          fi
+          if [ -d "$(basename ${{ secrets.DEPLOY_PATH }})" ]; then
+            cp -r $(basename ${{ secrets.DEPLOY_PATH }}) backup-$(date +%Y%m%d)
+          fi
+          
+          # สร้างไดเรกทอรีหากไม่มี
+          mkdir -p ${{ secrets.DEPLOY_PATH }}
+          cd ${{ secrets.DEPLOY_PATH }}
+          
+          # ล้างไฟล์เก่า (ยกเว้นไฟล์สำคัญ)
+          find . -type f -not -path './.env*' -not -path './uploads/*' -not -path './prisma/dev.db*' -delete
+          
+    - name: Copy files to server
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        port: ${{ secrets.DEPLOY_PORT || '22' }}
+        source: deployment.tar.gz
+        target: ${{ secrets.DEPLOY_PATH }}
+        
+    - name: Extract and setup application
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        port: ${{ secrets.DEPLOY_PORT || '22' }}
+        script: |
+          cd ${{ secrets.DEPLOY_PATH }}
+          
+          # แตกไฟล์และลบไฟล์ zip
+          tar -xzf deployment.tar.gz
+          rm deployment.tar.gz
+          
+          # ติดตั้ง dependencies
+          npm ci --production
+          
+          # Build application
+          npm run build
+          
+          # เช็คว่ามี PM2 หรือไม่
+          if command -v pm2 &> /dev/null; then
+            # รีสตาร์ทหรือเริ่มแอป
+            pm2 restart sdn-map-portal || pm2 start npm --name "sdn-map-portal" -- start
+            pm2 save
+          else
+            echo "PM2 not installed. Please install PM2 or use alternative process manager."
+            # Alternative: restart using systemctl or other method
+            # systemctl restart sdn-map-portal || echo "Service restart failed"
+          fi
+          
+          # แสดงสถานะ
+          echo "Deployment completed at $(date)"
+          ls -la
