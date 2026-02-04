@@ -53,7 +53,7 @@ export default function RecentUpdateNotification({
 
     // เริ่ม countdown
     const startTime = Date.now();
-    const duration = 3000; // 3 วินาที
+    const duration = 2000; // 3 วินาที
     const startProgress = progress;
 
     intervalRef.current = setInterval(() => {
