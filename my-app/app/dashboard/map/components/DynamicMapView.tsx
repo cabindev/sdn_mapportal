@@ -20,6 +20,7 @@ import CurrentLocationMarker from "./CurrentLocationMarker";
 import ProvinceMarkers from "./ProvinceMarkers";
 import LeafletProvinceOverlay from "./LeafletProvinceOverlay";
 import ProvinceCircleOverlay from "./ProvinceCircleOverlay";
+import ProvinceHighlight from "./ProvinceHighlight";
 import LeftNavbar from "./LeftNavbar";
 import RightSidebar from "./RightSidebar";
 import { useSession } from "next-auth/react";
@@ -96,6 +97,31 @@ const MAP_STYLES = `
     background-color: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
   }
+
+  /* Province marker tooltip styling */
+  .province-tooltip {
+    background-color: rgba(55, 65, 81, 0.95) !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    color: white !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+  }
+
+  .province-tooltip::before {
+    border-top-color: rgba(55, 65, 81, 0.95) !important;
+  }
+
+  .province-marker {
+    cursor: pointer !important;
+  }
+
+  /* Province overlay hover cursor */
+  .leaflet-interactive:hover {
+    cursor: pointer !important;
+  }
 `;
 
 // Types
@@ -125,6 +151,10 @@ interface MapState {
   selectedLocation: LocationData | null;
   showSearch: boolean;
   selectedDocument: DocumentWithCategory | null;
+  highlightedProvince: string | null;
+  highlightedProvinces: string[]; // สำหรับเลือกทั้งภูมิภาค
+  highlightedProvinceColor: string;
+  highlightedRegionName: string | null; // ชื่อภูมิภาคที่เลือก
 }
 
 // Custom hooks
@@ -255,7 +285,11 @@ export default function DynamicMapView({
     highlightedDocId: null,
     selectedLocation: null,
     showSearch: false,
-    selectedDocument: null
+    selectedDocument: null,
+    highlightedProvince: null,
+    highlightedProvinces: [],
+    highlightedProvinceColor: "#F97316",
+    highlightedRegionName: null
   });
 
   // Document data management
@@ -384,6 +418,38 @@ export default function DynamicMapView({
     setMapState(prev => ({ ...prev, showSearch: !prev.showSearch }));
   }, []);
 
+  // Handler สำหรับเลือกจังหวัดเดียวและแสดง highlight
+  const handleSelectProvince = useCallback((provinceName: string, color: string) => {
+    setMapState(prev => ({
+      ...prev,
+      highlightedProvince: provinceName,
+      highlightedProvinces: [], // clear region selection
+      highlightedProvinceColor: color,
+      highlightedRegionName: null
+    }));
+  }, []);
+
+  // Handler สำหรับเลือกทั้งภูมิภาค (หลายจังหวัด)
+  const handleSelectRegion = useCallback((regionName: string, provinces: string[], color: string) => {
+    setMapState(prev => ({
+      ...prev,
+      highlightedProvince: null, // clear single province selection
+      highlightedProvinces: provinces,
+      highlightedProvinceColor: color,
+      highlightedRegionName: regionName
+    }));
+  }, []);
+
+  // Handler สำหรับปิด province highlight
+  const handleCloseProvinceHighlight = useCallback(() => {
+    setMapState(prev => ({
+      ...prev,
+      highlightedProvince: null,
+      highlightedProvinces: [],
+      highlightedRegionName: null
+    }));
+  }, []);
+
   // Loading state
   if (mapState.isLoading) {
     return (
@@ -413,8 +479,16 @@ export default function DynamicMapView({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          <ProvinceMarkers />
-          <LeafletProvinceOverlay />
+          <ProvinceMarkers onSelectProvince={handleSelectProvince} />
+          <LeafletProvinceOverlay onSelectProvince={handleSelectProvince} />
+
+          {/* Province Highlight - แสดง polygon จังหวัดเมื่อเลือก (รองรับทั้งเดี่ยวและหลายจังหวัด) */}
+          <ProvinceHighlight
+            selectedProvince={mapState.highlightedProvince}
+            selectedProvinces={mapState.highlightedProvinces}
+            color={mapState.highlightedProvinceColor}
+            onClose={handleCloseProvinceHighlight}
+          />
 
           {processedDocuments.map((doc) => (
             <MapMarker 
@@ -458,6 +532,10 @@ export default function DynamicMapView({
               onHoverDocument={handleHoverDocument}
               onClickDocument={handleClickDocument}
               currentProvince={currentProvince}
+              onSelectProvince={handleSelectProvince}
+              onSelectRegion={handleSelectRegion}
+              highlightedProvince={mapState.highlightedProvince}
+              highlightedRegionName={mapState.highlightedRegionName}
             />
           )}
 
@@ -474,6 +552,41 @@ export default function DynamicMapView({
           
           {children}
         </MapContainer>
+      )}
+
+      {/* Province/Region Info Card - แสดงเมื่อเลือกจังหวัดหรือภูมิภาค */}
+      {(mapState.highlightedProvince || mapState.highlightedProvinces.length > 0) && (
+        <div className="absolute top-20 right-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-4 min-w-[200px]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: mapState.highlightedProvinceColor }}
+                />
+                <h3 className="font-bold text-gray-800">
+                  {mapState.highlightedRegionName || mapState.highlightedProvince}
+                </h3>
+              </div>
+              {/* แสดงจำนวนจังหวัดเมื่อเลือกภูมิภาค */}
+              {mapState.highlightedProvinces.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {mapState.highlightedProvinces.length} จังหวัด
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleCloseProvinceHighlight}
+              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+              title="ปิด"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Document Popup */}

@@ -71,7 +71,7 @@ export default function DocumentPopup({ document, onClose, onView, onDownload }:
       />
       
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] max-w-[90vw] max-h-[85vh] bg-white rounded-2xl shadow-xl z-[1000] overflow-hidden">
-        
+
         {/* Header with Image - 16:9 aspect ratio */}
         <div className="relative w-full bg-gray-50 overflow-hidden" style={{ paddingTop: "56.25%" }}>
           <img

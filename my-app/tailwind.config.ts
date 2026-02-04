@@ -10,8 +10,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Seppuri", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-prompt)", "Seppuri", "ui-sans-serif", "system-ui", "sans-serif"],
         seppuri: ["Seppuri", "sans-serif"],
+        prompt: ["var(--font-prompt)", "sans-serif"],
       },
     },
   },

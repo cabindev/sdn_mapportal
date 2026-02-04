@@ -10,6 +10,7 @@ import GoogleRightSidebar from './GoogleRightSidebar';
 import GoogleDocumentPopup from './GoogleDocumentPopup';
 import GoogleProvinceOverlay from './GoogleProvinceOverlay';
 import GoogleProvinceCircleOverlay from './GoogleProvinceCircleOverlay';
+import GoogleProvinceHighlight from './GoogleProvinceHighlight';
 import TambonSearchGoogle from './TambonSearchGoogle';
 import { getCategories } from '@/app/lib/actions/categories/get';
 
@@ -67,6 +68,12 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
   const [hoveredDocId, setHoveredDocId] = useState<number | null>(null);
   const [viewCounts, setViewCounts] = useState<Record<number, number>>({});
   const [searchLocation, setSearchLocation] = useState<LocationData | null>(null);
+
+  // State สำหรับ province/region highlight
+  const [highlightedProvince, setHighlightedProvince] = useState<string | null>(null);
+  const [highlightedProvinces, setHighlightedProvinces] = useState<string[]>([]);
+  const [highlightedProvinceColor, setHighlightedProvinceColor] = useState<string>("#F97316");
+  const [highlightedRegionName, setHighlightedRegionName] = useState<string | null>(null);
 
   // ✅ useEffect ต้องอยู่หลัง useState เสมอ
   useEffect(() => {
@@ -172,6 +179,34 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
     if (mapInstance) {
       mapInstance.panTo({ lat: location.lat, lng: location.lng });
       mapInstance.setZoom(13);
+    }
+  }, [mapInstance]);
+
+  // Handler สำหรับเลือกจังหวัดเดียว
+  const handleSelectProvince = useCallback((provinceName: string, color: string) => {
+    setHighlightedProvince(provinceName);
+    setHighlightedProvinces([]);
+    setHighlightedProvinceColor(color);
+    setHighlightedRegionName(null);
+  }, []);
+
+  // Handler สำหรับเลือกทั้งภูมิภาค
+  const handleSelectRegion = useCallback((regionName: string, provinces: string[], color: string) => {
+    setHighlightedProvince(null);
+    setHighlightedProvinces(provinces);
+    setHighlightedProvinceColor(color);
+    setHighlightedRegionName(regionName);
+  }, []);
+
+  // Handler สำหรับปิด province highlight
+  const handleCloseProvinceHighlight = useCallback(() => {
+    setHighlightedProvince(null);
+    setHighlightedProvinces([]);
+    setHighlightedRegionName(null);
+    // Reset map view
+    if (mapInstance) {
+      mapInstance.panTo(center);
+      mapInstance.setZoom(6);
     }
   }, [mapInstance]);
 
@@ -384,6 +419,17 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
 
           {/* Province Overlay */}
           <GoogleProvinceOverlay map={mapInstance} />
+
+          {/* Province Highlight - แสดง polygon จังหวัดเมื่อเลือก */}
+          {isLoaded && (
+            <GoogleProvinceHighlight
+              map={mapInstance}
+              selectedProvince={highlightedProvince}
+              selectedProvinces={highlightedProvinces}
+              color={highlightedProvinceColor}
+              onClose={handleCloseProvinceHighlight}
+            />
+          )}
         </GoogleMap>
       </LoadScript>
       
@@ -400,6 +446,10 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
                 onClickDocument={handleClickDocument}
                 onFlyTo={handleFlyTo}
                 currentProvince={currentProvince}
+                onSelectProvince={handleSelectProvince}
+                onSelectRegion={handleSelectRegion}
+                highlightedProvince={highlightedProvince}
+                highlightedRegionName={highlightedRegionName}
               />
             </div>
           </div>
@@ -418,6 +468,41 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
             </div>
           </div>
         </>
+      )}
+
+      {/* Province/Region Info Card - แสดงเมื่อเลือกจังหวัดหรือภูมิภาค */}
+      {(highlightedProvince || highlightedProvinces.length > 0) && (
+        <div className="absolute top-20 right-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-4 min-w-[200px]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: highlightedProvinceColor }}
+                />
+                <h3 className="font-bold text-gray-800">
+                  {highlightedRegionName || highlightedProvince}
+                </h3>
+              </div>
+              {/* แสดงจำนวนจังหวัดเมื่อเลือกภูมิภาค */}
+              {highlightedProvinces.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {highlightedProvinces.length} จังหวัด
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleCloseProvinceHighlight}
+              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+              title="ปิด"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

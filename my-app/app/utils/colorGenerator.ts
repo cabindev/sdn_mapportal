@@ -104,12 +104,14 @@ function shadeColor(color: string, percent: number): string {
 }
 
 export const THAILAND_BOUNDS = {
-  center: [13.736717, 100.523186] as [number, number], 
+  center: [13.736717, 100.523186] as [number, number],
   zoom: 6,
   minZoom: 5,
   maxZoom: 18,
+  // ขยาย bounds เพื่อให้ fitBounds มีที่ว่างสำหรับ padding (หลบ sidebar)
+  // จังหวัดติดขอบ เช่น แม่ฮ่องสอน (ตะวันตก) จะได้แสดงตรงกลางได้
   bounds: [
-    [6.0, 97.0] as [number, number], 
-    [20.0, 106.5] as [number, number], 
-  ] as [[number, number], [number, number]], 
+    [4.0, 94.0] as [number, number],   // Southwest - ขยายลงใต้และไปทางตะวันตก
+    [22.0, 109.0] as [number, number], // Northeast - ขยายขึ้นเหนือและไปทางตะวันออก
+  ] as [[number, number], [number, number]],
 };

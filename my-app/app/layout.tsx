@@ -1,5 +1,5 @@
-// app/layout.tsx
 import type { Metadata } from "next";
+import { Prompt } from "next/font/google";
 import "./globals.css";
 import 'leaflet/dist/leaflet.css'
 import SessionProvider from "./components/SessionProvider";
@@ -8,7 +8,7 @@ import authOptions from "./lib/configs/auth/authOptions";
 import { Toaster } from "sonner";
 import FloatingDashboardButton from "./components/FloatingDashboardButton";
 
-export const metadata: Metadata = { 
+export const metadata: Metadata = {
   title: "SDN Map-portal",
   description: "ระบบแผนที่ดิจิทัลสำหรับการจัดการข้อมูลเชิงพื้นที่",
   keywords: ["แผนที่", "ระบบสารสนเทศภูมิศาสตร์", "GIS", "SDN"],
@@ -40,16 +40,23 @@ export const metadata: Metadata = {
   manifest: '/site.webmanifest',
 };
 
+const prompt = Prompt({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['latin', 'thai'],
+  variable: '--font-prompt',
+  display: 'swap',
+});
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const session = await getServerSession(authOptions);
-  
+
   return (
     <html lang="th" className="scroll-smooth">
-      <body className="font-seppuri antialiased">
+      <body className={`${prompt.variable} font-sans antialiased`}>
         <SessionProvider session={session}>
           <main className="min-h-[calc(100vh-4rem)]">
             {children}

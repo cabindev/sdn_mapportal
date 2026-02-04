@@ -1,7 +1,7 @@
 // app/dashboard/map/components/RecentUpdateNotification.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DocumentWithCategory } from "@/app/types/document";
 import { X, MapPin, Clock } from "lucide-react";
 
@@ -29,6 +29,10 @@ export default function RecentUpdateNotification({
   documents
 }: RecentUpdateNotificationProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const [isHovering, setIsHovering] = useState(false);
+  const [progress, setProgress] = useState(100);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // เลือกเอกสารที่อัปโหลดล่าสุด 1 รายการ (นับจาก createdAt)
   const latestDocument = [...documents]
@@ -38,14 +42,60 @@ export default function RecentUpdateNotification({
       return dateB - dateA; // เรียงจากวันที่อัปโหลดล่าสุด
     })[0];
 
+  // Auto-hide หลัง 5 วินาที (หยุดเมื่อ hover)
+  useEffect(() => {
+    if (!isVisible || isHovering) {
+      // หยุด timer เมื่อ hover
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+
+    // เริ่ม countdown
+    const startTime = Date.now();
+    const duration = 3000; // 3 วินาที
+    const startProgress = progress;
+
+    intervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, startProgress - (elapsed / duration) * startProgress);
+      setProgress(remaining);
+
+      if (remaining <= 0) {
+        setIsVisible(false);
+      }
+    }, 50);
+
+    timerRef.current = setTimeout(() => {
+      setIsVisible(false);
+    }, (startProgress / 100) * duration);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isVisible, isHovering, progress]);
+
   // แสดงเอกสารล่าสุดเสมอ ไม่จำกัดเวลา
   if (!isVisible || !latestDocument) {
     return null;
   }
 
   return (
-    <div className="hidden md:block fixed bottom-6 left-6 z-[900] animate-slide-up">
+    <div
+      className="hidden md:block fixed bottom-6 left-6 z-[900] animate-slide-up"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
       <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-[320px] border border-gray-100">
+        {/* Progress bar - countdown */}
+        <div className="h-1 bg-gray-200">
+          <div
+            className="h-full bg-emerald-500 transition-all duration-100"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
         {/* Header */}
         <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-3 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -53,8 +103,10 @@ export default function RecentUpdateNotification({
             <span className="text-white text-xs font-medium">ข้อมูลอัปเดตล่าสุด</span>
           </div>
           <button
+            type="button"
             onClick={() => setIsVisible(false)}
             className="text-white/80 hover:text-white transition-colors"
+            title="ปิด"
           >
             <X className="w-4 h-4" />
           </button>
