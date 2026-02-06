@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Prompt } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import 'leaflet/dist/leaflet.css'
 import SessionProvider from "./components/SessionProvider";
@@ -40,9 +40,19 @@ export const metadata: Metadata = {
   manifest: '/site.webmanifest',
 };
 
-const prompt = Prompt({
-  weight: ['300', '400', '500', '600', '700'],
-  subsets: ['latin', 'thai'],
+const prompt = localFont({
+  src: [
+    { path: './fonts/Prompt-300-thai.woff2', weight: '300', style: 'normal' },
+    { path: './fonts/Prompt-300-latin.woff2', weight: '300', style: 'normal' },
+    { path: './fonts/Prompt-400-thai.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/Prompt-400-latin.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/Prompt-500-thai.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/Prompt-500-latin.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/Prompt-600-thai.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/Prompt-600-latin.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/Prompt-700-thai.woff2', weight: '700', style: 'normal' },
+    { path: './fonts/Prompt-700-latin.woff2', weight: '700', style: 'normal' },
+  ],
   variable: '--font-prompt',
   display: 'swap',
 });
