@@ -1,9 +1,10 @@
 // app/dashboard/map/components/LeafletProvinceOverlay.tsx
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import thailandGeoJSON from "@/app/data/thailand.json";
 
 // สีของแต่ละภูมิภาค
 const regionColors: Record<string, string> = {
@@ -51,6 +52,41 @@ function getProvinceColor(provinceName: string): string {
   return region ? regionColors[region] : "#F97316";
 }
 
+// Ray-casting point-in-polygon (GeoJSON coordinates = [lng, lat])
+function pointInPolygon(lat: number, lng: number, ring: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][1], yi = ring[i][0];
+    const xj = ring[j][1], yj = ring[j][0];
+    const intersect = ((yi > lng) !== (yj > lng)) &&
+      (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+// หาจังหวัดจากพิกัด
+function findProvinceAtPoint(lat: number, lng: number): { name: string; color: string } | null {
+  const features = (thailandGeoJSON as GeoJSON.FeatureCollection).features;
+  for (const feature of features) {
+    const name = feature.properties?.name_th;
+    if (!name) continue;
+    const geom = feature.geometry;
+    if (geom.type === 'Polygon') {
+      if (pointInPolygon(lat, lng, (geom.coordinates as number[][][])[0])) {
+        return { name, color: getProvinceColor(name) };
+      }
+    } else if (geom.type === 'MultiPolygon') {
+      for (const poly of geom.coordinates as number[][][][]) {
+        if (pointInPolygon(lat, lng, poly[0])) {
+          return { name, color: getProvinceColor(name) };
+        }
+      }
+    }
+  }
+  return null;
+}
+
 interface LeafletProvinceOverlayProps {
   showOverlay?: boolean;
   onSelectProvince?: (provinceName: string, color: string) => void;
@@ -60,89 +96,79 @@ export default function LeafletProvinceOverlay({
   showOverlay = true,
   onSelectProvince
 }: LeafletProvinceOverlayProps) {
-  const [geoJsonData, setGeoJsonData] = useState<any>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [useCircleFallback, setUseCircleFallback] = useState(false);
   const map = useMap();
+  const onSelectProvinceRef = useRef(onSelectProvince);
+  onSelectProvinceRef.current = onSelectProvince;
+  const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
+  const hoveredLayerRef = useRef<L.Path | null>(null);
+  const [paneReady, setPaneReady] = useState(false);
 
+  // สร้าง custom pane ที่ pointer-events: none (ไม่บดบัง marker)
   useEffect(() => {
-    if (!showOverlay || isLoaded) return;
+    if (!map) return;
+    if (!map.getPane('provinceOverlay')) {
+      map.createPane('provinceOverlay');
+      const pane = map.getPane('provinceOverlay')!;
+      pane.style.zIndex = '300';
+      pane.style.pointerEvents = 'none';
+    }
+    setPaneReady(true);
+  }, [map]);
 
-    const loadProvinceData = async () => {
-      try {
-        console.log('📍 Loading Thailand province boundaries for Leaflet...');
-        
-        // ลองใช้ข้อมูล GeoJSON จาก GitHub ก่อน
-        const response = await fetch('https://raw.githubusercontent.com/apisit/thailand.json/master/thailand.json');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch GeoJSON data');
+  // Map click → point-in-polygon → province selection
+  useEffect(() => {
+    if (!map || !showOverlay) return;
+
+    const handleMapClick = (e: L.LeafletMouseEvent) => {
+      if (!onSelectProvinceRef.current) return;
+      const result = findProvinceAtPoint(e.latlng.lat, e.latlng.lng);
+      if (result) {
+        onSelectProvinceRef.current(result.name, result.color);
+      }
+    };
+
+    map.on('click', handleMapClick);
+    return () => { map.off('click', handleMapClick); };
+  }, [map, showOverlay]);
+
+  // Hover ด้วย mousemove (เพราะ pane มี pointer-events: none)
+  useEffect(() => {
+    if (!map || !showOverlay) return;
+
+    const handleMouseMove = (e: L.LeafletMouseEvent) => {
+      if (!geoJsonLayerRef.current) return;
+
+      const result = findProvinceAtPoint(e.latlng.lat, e.latlng.lng);
+
+      // Reset previous hover
+      if (hoveredLayerRef.current) {
+        hoveredLayerRef.current.setStyle(geoJsonStyle);
+        hoveredLayerRef.current = null;
+      }
+
+      if (!result) return;
+
+      // หา layer ที่ตรงกับจังหวัด
+      geoJsonLayerRef.current.eachLayer((layer: any) => {
+        if (layer.feature?.properties?.name_th === result.name) {
+          layer.setStyle({
+            fillColor: result.color,
+            fillOpacity: 0.2,
+            color: result.color,
+            opacity: 0.8,
+            weight: 2
+          });
+          hoveredLayerRef.current = layer;
         }
-        
-        const data = await response.json();
-        setGeoJsonData(data);
-        setIsLoaded(true);
-        console.log('✅ Province boundaries loaded successfully for Leaflet');
-        
-      } catch (error) {
-        console.error('❌ Error loading province data for Leaflet:', error);
-        console.log('🔄 Falling back to circle method...');
-        
-        // Fallback: ใช้วงกลมถ้าโหลด GeoJSON ไม่ได้
-        setUseCircleFallback(true);
-        await createCircleFallback();
-        setIsLoaded(true);
-      }
+      });
     };
 
-    const createCircleFallback = async () => {
-      try {
-        const { provinceCoordinates } = await import('@/app/data/provinceCoordinates');
-        
-        provinceCoordinates.forEach(province => {
-          const circle = L.circle([province.latitude, province.longitude], {
-            radius: 30000,
-            color: 'transparent',
-            fillColor: 'transparent',
-            fillOpacity: 0,
-            weight: 1
-          }).addTo(map);
+    map.on('mousemove', handleMouseMove);
+    return () => { map.off('mousemove', handleMouseMove); };
+  }, [map, showOverlay]);
 
-          // เมื่อ hover เข้า
-          circle.on('mouseover', (e) => {
-            circle.setStyle({
-              color: '#f59e0b',
-              fillColor: '#fbbf24',
-              fillOpacity: 0.2,
-              weight: 2
-            });
-
-            // ไม่แสดง tooltip แค่เปลี่ยนสี
-          });
-
-          // เมื่อ hover ออก
-          circle.on('mouseout', () => {
-            circle.setStyle({
-              color: 'transparent',
-              fillColor: 'transparent',
-              fillOpacity: 0,
-              weight: 1
-            });
-            // ไม่ต้องปิด tooltip เพราะไม่ได้แสดง
-          });
-        });
-        
-        console.log('✅ Fallback circles loaded for Leaflet');
-      } catch (fallbackError) {
-        console.error('❌ Fallback method also failed:', fallbackError);
-      }
-    };
-
-    loadProvinceData();
-  }, [map, showOverlay, isLoaded]);
-
-  // Style function สำหรับ GeoJSON
-  const geoJsonStyle = {
+  // Style เริ่มต้น (โปร่งใส)
+  const geoJsonStyle: L.PathOptions = {
     fillColor: 'transparent',
     fillOpacity: 0,
     color: '#e5e7eb',
@@ -150,52 +176,16 @@ export default function LeafletProvinceOverlay({
     weight: 1
   };
 
-  // Event handlers สำหรับ GeoJSON
-  const onEachFeature = (feature: any, layer: L.Layer) => {
-    const provinceName = feature.properties?.name_th || feature.properties?.name;
-    const color = getProvinceColor(provinceName);
-
-    layer.on({
-      mouseover: (e) => {
-        const layer = e.target;
-        layer.setStyle({
-          fillColor: color,
-          fillOpacity: 0.3,
-          color: color,
-          opacity: 0.8,
-          weight: 2
-        });
-
-        // แสดง tooltip ชื่อจังหวัด
-        layer.bindTooltip(provinceName, {
-          permanent: false,
-          direction: 'center',
-          className: 'province-tooltip'
-        }).openTooltip();
-      },
-      mouseout: (e) => {
-        const layer = e.target;
-        layer.setStyle(geoJsonStyle);
-        layer.closeTooltip();
-      },
-      click: () => {
-        // เมื่อคลิกให้เลือกจังหวัด
-        if (onSelectProvince && provinceName) {
-          onSelectProvince(provinceName, color);
-        }
-      }
-    });
-  };
-
-  if (!showOverlay || !isLoaded || useCircleFallback) {
+  if (!showOverlay || !paneReady) {
     return null;
   }
 
-  return geoJsonData ? (
+  return (
     <GeoJSON
-      data={geoJsonData}
+      ref={(ref) => { geoJsonLayerRef.current = ref as unknown as L.GeoJSON; }}
+      data={thailandGeoJSON as any}
       style={geoJsonStyle}
-      onEachFeature={onEachFeature}
+      pane="provinceOverlay"
     />
-  ) : null;
+  );
 }

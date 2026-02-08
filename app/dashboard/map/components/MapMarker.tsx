@@ -26,7 +26,7 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
   useEffect(() => {
     const handleZoom = () => {
       const zoomLevel = map.getZoom();
-      const newSize = Math.max(10, Math.min(16, 6 + zoomLevel * 0.8));
+      const newSize = Math.max(16, Math.min(28, 8 + zoomLevel * 1.5));
       setMarkerSize(newSize);
     };
 
@@ -187,6 +187,7 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
       <Marker
         position={[docData.latitude, docData.longitude]}
         icon={icon}
+        bubblingMouseEvents={false}
         eventHandlers={{
           click: togglePopup,
           mouseover: handleMouseOver,

@@ -122,6 +122,11 @@ const MAP_STYLES = `
   .leaflet-interactive:hover {
     cursor: pointer !important;
   }
+
+  /* ลบ focus outline (กรอบสี่เหลี่ยมสีฟ้า) จาก SVG paths */
+  .leaflet-interactive:focus {
+    outline: none !important;
+  }
 `;
 
 // Types

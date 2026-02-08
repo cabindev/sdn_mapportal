@@ -418,7 +418,7 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
           )}
 
           {/* Province Overlay */}
-          <GoogleProvinceOverlay map={mapInstance} />
+          <GoogleProvinceOverlay map={mapInstance} onSelectProvince={handleSelectProvince} />
 
           {/* Province Highlight - แสดง polygon จังหวัดเมื่อเลือก */}
           {isLoaded && (

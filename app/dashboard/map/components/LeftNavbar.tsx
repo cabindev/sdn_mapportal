@@ -5,7 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useMap } from "react-leaflet";
 import Link from "next/link";
 import {
-  User, LogOut, FileText, MapPin, Clock, Eye, Download, ChevronRight, LayoutDashboard, Search, X, Layers
+  User, LogOut, FileText, MapPin, Clock, Eye, Download, ChevronRight, LayoutDashboard, Search, X, Layers, Minus
 } from "lucide-react";
 import { DocumentWithCategory } from "@/app/types/document";
 import { toast } from "react-hot-toast";
@@ -107,6 +107,7 @@ export default function LeftNavbar({
   useEffect(() => {
     if (activeProvince) {
       setIsOpen(true);
+      setActiveTab('documents');
     }
   }, [activeProvince]);
 
@@ -119,9 +120,14 @@ export default function LeftNavbar({
     }
   };
 
-  const recentDocuments = documents
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 10);
+  // กรองเอกสารตามจังหวัดที่เลือก หรือแสดงทั้งหมด
+  const displayDocuments = (() => {
+    const sorted = [...documents].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (highlightedProvince) {
+      return sorted.filter((doc: any) => doc.province === highlightedProvince);
+    }
+    return sorted.slice(0, 10);
+  })();
 
   const formatDate = (date: string | Date) =>
     new Date(date).toLocaleDateString("th-TH", {
@@ -198,22 +204,17 @@ export default function LeftNavbar({
 
   return (
     <>
-      {/* Toggle Button - Modern Floating Style */}
-      <div className={`absolute top-8 z-[9999] transition-all duration-300 ${isOpen ? 'left-[410px]' : 'left-8'}`}>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`
-            w-10 h-10 rounded-full flex items-center justify-center
-            transition-all duration-300 shadow-lg border border-gray-100
-            ${isOpen
-              ? 'bg-white text-gray-700 hover:bg-gray-50'
-              : 'bg-white text-gray-900 hover:bg-gray-50'
-            }
-          `}
-        >
-          {isOpen ? <X className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
-        </button>
-      </div>
+      {/* Toggle Button - Only show when sidebar is closed */}
+      {!isOpen && (
+        <div className="absolute top-8 left-8 z-[9999]">
+          <button
+            onClick={() => setIsOpen(true)}
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg border border-gray-100 bg-white text-gray-900 hover:bg-gray-50"
+          >
+            <Layers className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       {/* Sidebar Panel */}
       <div className={`
@@ -224,12 +225,19 @@ export default function LeftNavbar({
         <div className="h-full w-[380px] bg-white shadow-2xl rounded-[32px] flex flex-col overflow-hidden border border-gray-100/50 font-prompt">
 
           {/* Header */}
-          <div className="px-6 py-6 border-b border-gray-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 tracking-tight">SDN Map Portal</h1>
-                <p className="text-sm text-gray-500 mt-1 font-medium">ระบบแผนที่ข้อมูลเชิงพื้นที่</p>
+          <div className="px-5 py-5 border-b border-gray-50">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg font-bold text-gray-900 tracking-tight leading-tight">SDN Map Portal</h1>
+                <p className="text-xs text-gray-500 font-medium">ระบบแผนที่ข้อมูลเชิงพื้นที่</p>
               </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all flex-shrink-0"
+                title="ซ่อนแผงควบคุม"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
@@ -374,9 +382,18 @@ export default function LeftNavbar({
             {/* Documents Tab */}
             {activeTab === 'documents' && (
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {recentDocuments.length > 0 ? (
+                {/* Province filter header */}
+                {highlightedProvince && (
+                  <div className="flex items-center justify-between px-2 py-2">
+                    <p className="text-sm font-bold text-gray-700">
+                      <MapPin className="w-4 h-4 inline mr-1 text-orange-500" />
+                      {highlightedProvince} ({displayDocuments.length})
+                    </p>
+                  </div>
+                )}
+                {displayDocuments.length > 0 ? (
                   <>
-                    {recentDocuments.map((doc) => {
+                    {displayDocuments.map((doc) => {
                       const isHovered = hoveredDocId === doc.id;
                       return (
                         <div
@@ -434,7 +451,9 @@ export default function LeftNavbar({
                 ) : (
                   <div className="py-12 text-center">
                     <FileText className="w-12 h-12 mx-auto text-gray-200 mb-3" />
-                    <p className="text-base text-gray-400 font-medium">ไม่พบเอกสาร</p>
+                    <p className="text-base text-gray-400 font-medium">
+                      {highlightedProvince ? `ไม่พบเอกสารใน${highlightedProvince}` : 'ไม่พบเอกสาร'}
+                    </p>
                   </div>
                 )}
               </div>
