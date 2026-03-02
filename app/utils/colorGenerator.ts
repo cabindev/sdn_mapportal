@@ -1,23 +1,23 @@
 // app/utils/colorGenerator.ts
-// ชุดสีสดใสและทันสมัย
+// ชุดสีที่แตกต่างกันชัดเจน — เรียงแบบ interleaved ให้ category ต่อกันได้สีตรงข้ามบนวงล้อสี
 
 const COLOR_PALETTE = [
-  '#FF4444', // Bright Red - แดงสด
-  '#FF8800', // Vivid Orange - ส้มสด  
-  '#FFDD00', // Bright Yellow - เหลืองสด
-  '#44BB44', // Bright Green - เขียวสด
-  '#00DDDD', // Bright Cyan - ฟ้าเขียวสด
-  '#4488FF', // Bright Blue - น้ำเงินสด
-  '#AA44FF', // Bright Purple - ม่วงสด
-  '#FF44AA', // Bright Pink - ชมพูสด
-  '#FF7722', // Bright Orange-Red - ส้มแดงสด
-  '#66DD66', // Light Green - เขียวอ่อนสด
-  '#FF6699', // Light Pink - ชมพูอ่อนสด
-  '#6666FF', // Light Blue - น้ำเงินอ่อนสด
-  '#FFAA00', // Bright Amber - เหลืองทองสด
-  '#22DDAA', // Turquoise - เขียวฟ้าสด
-  '#BB44BB', // Magenta - ม่วงแดงสด
-  '#DDAA44', // Golden - ทองคำสด
+  '#FF4444', //  1. Red        - แดงสด          (0°)
+  '#00DDDD', //  2. Cyan       - ฟ้าเขียวสด     (180°) ← ตรงข้ามแดง
+  '#44BB44', //  3. Green      - เขียวสด         (120°)
+  '#AA44FF', //  4. Purple     - ม่วงสด          (270°) ← ตรงข้ามเขียว
+  '#FF8800', //  5. Orange     - ส้มสด           (30°)
+  '#4488FF', //  6. Blue       - น้ำเงินสด       (210°) ← ตรงข้ามส้ม
+  '#FFDD00', //  7. Yellow     - เหลืองสด        (55°)
+  '#FF44AA', //  8. Pink       - ชมพูสด          (330°) ← ตรงข้ามเหลือง
+  '#795548', //  9. Brown      - น้ำตาล          (earthy — ต่างจากทุกสีข้างบน)
+  '#00897B', // 10. Teal       - เขียวอมฟ้าเข้ม  (158°) ← เข้มกว่า Cyan มาก
+  '#CDDC39', // 11. Lime       - เหลืองมะนาว    (82°)  ← ระหว่าง Yellow กับ Green
+  '#5C6BC0', // 12. Indigo     - คราม           (233°) ← ระหว่าง Blue กับ Purple
+  '#E040FB', // 13. Magenta    - ม่วงชมพูสด      (295°)
+  '#558B2F', // 14. Olive      - เขียวมะกอก      (94°)  ← เข้มกว่า Lime มาก
+  '#FFB300', // 15. Amber      - เหลืองอำพัน    (42°)  ← ระหว่าง Orange กับ Yellow
+  '#607D8B', // 16. Blue Grey  - เทาน้ำเงิน     (neutral — เย็นแต่ desaturated)
 ];
 
 export interface CategoryColorScheme {
