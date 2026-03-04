@@ -8,6 +8,7 @@ import {
   User, LogOut, FileText, MapPin, Clock, Eye, Download, ChevronRight, LayoutDashboard, Search, X, Layers, Minus
 } from "lucide-react";
 import { DocumentWithCategory } from "@/app/types/document";
+import { getCategoryColor } from "@/app/utils/colorGenerator";
 import { toast } from "react-hot-toast";
 
 // ข้อมูลภูมิภาคตาม regions.ts (10 ภูมิภาค, 77 จังหวัด)
@@ -54,6 +55,52 @@ const regionData: Record<string, { provinces: string[]; color: string }> = {
   }
 };
 
+// Placeholder เมื่อไม่มีรูป — ไม่มี background color
+function MapPortalPlaceholder({ color }: { color: string }) {
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="48"
+        height="48"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.6"
+      >
+        <ellipse cx="12" cy="5" rx="9" ry="3" />
+        <path d="M3 5v4c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
+        <path d="M3 9v4c0 1.66 4.03 3 9 3s9-1.34 9-3V9" />
+        <path d="M3 13v4c0 1.66 4.03 3 9 3s9-1.34 9-3v-4" />
+      </svg>
+      <p className="font-black tracking-widest text-xs" style={{ color, opacity: 0.6 }}>
+        SDNMAPPORTAL
+      </p>
+    </div>
+  );
+}
+
+// CoverImage — ใช้ useState แทน onError loop
+function CoverImage({ src, alt, color }: { src: string | null | undefined; alt: string; color: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return <MapPortalPlaceholder color={color} />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-full h-full object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 interface LeftNavbarProps {
   documents?: DocumentWithCategory[];
   categories?: any[];
@@ -84,7 +131,7 @@ export default function LeftNavbar({
   const { data: session, status } = useSession();
   const map = useMap();
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'provinces' | 'documents'>('provinces');
+  const [activeTab, setActiveTab] = useState<'recent' | 'regions' | 'documents'>('recent');
   const [expandedRegions, setExpandedRegions] = useState<Record<string, boolean>>({});
   const [provinceSearch, setProvinceSearch] = useState("");
   const [hoveredDocId, setHoveredDocId] = useState<number | null>(null);
@@ -101,6 +148,11 @@ export default function LeftNavbar({
       };
     }
   });
+
+  // เอกสารล่าสุด 1 รายการ
+  const latestDocument = [...documents].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )[0] ?? null;
 
   const activeProvince = highlightedProvince || currentProvince;
 
@@ -241,32 +293,44 @@ export default function LeftNavbar({
             </div>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="px-6 pb-2">
-            <div className="flex gap-1 p-1.5 bg-gray-50 rounded-2xl">
+          {/* Tab Navigation — 3 tabs */}
+          <div className="px-4 pb-2 pt-3">
+            <div className="flex gap-1 p-1 bg-gray-50 rounded-2xl">
               <button
-                onClick={() => setActiveTab('provinces')}
+                onClick={() => setActiveTab('recent')}
                 className={`
-                  flex-1 py-2.5 px-3 text-sm font-semibold rounded-xl transition-all
-                  ${activeTab === 'provinces'
+                  flex-1 py-2.5 px-2 text-xs font-semibold rounded-xl transition-all
+                  ${activeTab === 'recent'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                   }
                 `}
               >
-                จังหวัด
+                ✨ ล่าสุด
+              </button>
+              <button
+                onClick={() => setActiveTab('regions')}
+                className={`
+                  flex-1 py-2.5 px-2 text-xs font-semibold rounded-xl transition-all
+                  ${activeTab === 'regions'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                  }
+                `}
+              >
+                📍 ภูมิภาค
               </button>
               <button
                 onClick={() => setActiveTab('documents')}
                 className={`
-                  flex-1 py-2.5 px-3 text-sm font-semibold rounded-xl transition-all
+                  flex-1 py-2.5 px-2 text-xs font-semibold rounded-xl transition-all
                   ${activeTab === 'documents'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                   }
                 `}
               >
-                เอกสารล่าสุด
+                📄 เอกสาร
               </button>
             </div>
           </div>
@@ -274,8 +338,79 @@ export default function LeftNavbar({
           {/* Content Area */}
           <div className="flex-1 overflow-hidden flex flex-col">
 
-            {/* Provinces Tab */}
-            {activeTab === 'provinces' && (
+            {/* ===== Tab: ล่าสุด (Hero Card) ===== */}
+            {activeTab === 'recent' && (
+              <div className="flex-1 overflow-hidden relative bg-gray-100">
+                {latestDocument ? (() => {
+                  const color = getCategoryColor(latestDocument.categoryId).primary;
+                  return (
+                    <>
+                      {/* Full-area image */}
+                      <div className="absolute inset-0">
+                        <CoverImage
+                          src={latestDocument.coverImage}
+                          alt={latestDocument.title}
+                          color={color}
+                        />
+                      </div>
+
+                      {/* Gradient overlay — from bottom */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                      {/* Badges — top row */}
+                      <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+                        {/* Left: "โพสต์ล่าสุด" */}
+                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-black/40 backdrop-blur-sm rounded-full">
+                          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse flex-shrink-0" />
+                          <span className="text-white text-xs font-medium">โพสต์ล่าสุด</span>
+                        </div>
+
+                        {/* Right: category name */}
+                        {latestDocument.category && (
+                          <div
+                            className="px-2.5 py-1.5 rounded-full text-xs font-bold backdrop-blur-sm"
+                            style={{
+                              backgroundColor: color + '33',
+                              color,
+                              border: `1px solid ${color}55`,
+                            }}
+                          >
+                            {latestDocument.category.name}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content — bottom */}
+                      <div className="absolute bottom-0 left-0 right-0 p-4 pb-5">
+                        <h3 className="text-white font-bold text-base line-clamp-3 leading-snug mb-1.5">
+                          {latestDocument.title}
+                        </h3>
+
+                        {latestDocument.description && (
+                          <p className="text-white/70 text-sm line-clamp-2 mb-2 leading-relaxed">
+                            {latestDocument.description}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-1.5 text-white/60 text-xs">
+                          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="line-clamp-1">
+                            {latestDocument.amphoe}, {latestDocument.province}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })() : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-gray-400 text-sm">ไม่พบเอกสาร</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ===== Tab: ภูมิภาค ===== */}
+            {activeTab === 'regions' && (
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Search */}
                 <div className="px-6 py-4">
@@ -379,7 +514,7 @@ export default function LeftNavbar({
               </div>
             )}
 
-            {/* Documents Tab */}
+            {/* ===== Tab: เอกสาร ===== */}
             {activeTab === 'documents' && (
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {/* Province filter header */}
