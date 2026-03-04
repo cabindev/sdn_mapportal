@@ -25,14 +25,14 @@ model Document {
   longitude     Float
   year          Int?
   viewCount     Int         @default(0)
-  downloadCount Int         @default(0)   
+  downloadCount Int         @default(0)
   isPublished   Boolean     @default(true)
-  
-  userId        Int
-  user          User        @relation(fields: [userId], references: [id])
-  
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([categoryId])
   @@index([year])
@@ -40,34 +40,34 @@ model Document {
 }
 
 model CategoryDoc {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
-  description String?     
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   documents   Document[]
 
   @@index([name])
 }
 
 model User {
-  id                  Int            @id @default(autoincrement())
+  id                  Int       @id @default(autoincrement())
   firstName           String
   lastName            String
-  email               String         @unique
+  email               String    @unique
   password            String
   image               String?
-  role                Role           @default(MEMBER)
+  role                Role      @default(MEMBER)
   emailVerified       DateTime?
-  resetToken          String?        @unique
+  resetToken          String?   @unique
   resetTokenCreatedAt DateTime?
   resetTokenExpiresAt DateTime?
   lastPasswordReset   DateTime?
-  
-  documents           Document[]
-  
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+
+  documents Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([email])
   @@index([role])
