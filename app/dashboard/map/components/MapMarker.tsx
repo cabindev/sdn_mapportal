@@ -7,19 +7,26 @@ import { getCategoryColor } from '@/app/utils/colorGenerator'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import DocumentPopup from './DocumentPopup'
+import LocationStackList from '@/app/components/LocationStackList'
 
 interface MapMarkerProps {
-  document: DocumentWithCategory & { isLatest?: boolean };
+  /** เอกสารทั้งหมดที่อยู่ในพิกัดเดียวกัน (เรียงใหม่สุดก่อน) */
+  documents: (DocumentWithCategory & { isLatest?: boolean })[];
   onHover?: (documentId: number | null) => void;
 }
 
-export default function MapMarker({ document: docData, onHover }: MapMarkerProps) {
-  const colorScheme = getCategoryColor(docData.categoryId);
+export default function MapMarker({ documents, onHover }: MapMarkerProps) {
+  const primary = documents[0];
+  const count = documents.length;
+  const isLatest = documents.some(doc => doc.isLatest);
+  const colorScheme = getCategoryColor(primary.categoryId);
+
   const [icon, setIcon] = useState<any>(null);
-  const [viewCount, setViewCount] = useState(docData.viewCount || 0);
-  const [downloadCount, setDownloadCount] = useState(docData.downloadCount || 0);
   const [markerSize, setMarkerSize] = useState(16);
-  const [showPopup, setShowPopup] = useState(false);
+  const [showList, setShowList] = useState(false);
+  const [activeDoc, setActiveDoc] = useState<DocumentWithCategory | null>(null);
+  const [viewCount, setViewCount] = useState(0);
+  const [downloadCount, setDownloadCount] = useState(0);
   const map = useMap();
 
   // ติดตามการเปลี่ยนแปลงระดับการซูม
@@ -41,7 +48,7 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
       map.off('zoom', handleZoom);
     };
   }, [map]);
-  
+
   // สร้าง icon สำหรับมาร์กเกอร์
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -52,7 +59,7 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
       const newIcon = L.default.divIcon({
         html: `
           <div style="position: relative; width: ${dotSize}px; height: ${dotSize}px;">
-            ${docData.isLatest ? `
+            ${isLatest ? `
               <div class="marker-pulse-ring" style="
                 position: absolute;
                 top: 0;
@@ -74,6 +81,28 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
               border: 2px solid white;
               box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             "></div>
+            ${count > 1 ? `
+              <div style="
+                position: absolute;
+                top: -6px;
+                right: -6px;
+                min-width: 16px;
+                height: 16px;
+                padding: 0 3px;
+                box-sizing: border-box;
+                background-color: #EF4444;
+                color: white;
+                border: 2px solid white;
+                border-radius: 8px;
+                font-size: 10px;
+                font-weight: 700;
+                line-height: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+              ">${count > 99 ? '99+' : count}</div>
+            ` : ''}
           </div>
         `,
         className: 'custom-marker-container',
@@ -105,15 +134,15 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
 
       setIcon(newIcon);
     });
-  }, [docData.isLatest, colorScheme.primary, markerSize]);
-  
+  }, [isLatest, colorScheme.primary, markerSize, count]);
+
   // ฟังก์ชันเพิ่มจำนวนการดู
-  const handleViewDocument = async () => {
+  const incrementViewCount = async (docId: number) => {
     try {
-      const response = await fetch(`/api/documents/view/${docData.id}`, {
+      const response = await fetch(`/api/documents/view/${docId}`, {
         method: 'POST',
       });
-      
+
       if (response.ok) {
         setViewCount(prev => prev + 1);
       }
@@ -121,14 +150,15 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
       console.error('Error incrementing view count:', error);
     }
   };
-  
+
   // ฟังก์ชันเพิ่มจำนวนการดาวน์โหลด
   const handleDownload = async () => {
+    if (!activeDoc) return;
     try {
-      const response = await fetch(`/api/documents/download/${docData.id}`, {
+      const response = await fetch(`/api/documents/download/${activeDoc.id}`, {
         method: 'POST',
       });
-      
+
       if (response.ok) {
         setDownloadCount(prev => prev + 1);
       }
@@ -136,11 +166,11 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
       console.error('Error incrementing download count:', error);
     }
   };
-  
+
   // ฟังก์ชันโหลดข้อมูลล่าสุดจากฐานข้อมูล
-  const fetchLatestCounts = async () => {
+  const fetchLatestCounts = async (docId: number) => {
     try {
-      const response = await fetch(`/api/documents/${docData.id}`);
+      const response = await fetch(`/api/documents/${docId}`);
       if (response.ok) {
         const data = await response.json();
         setViewCount(data.viewCount || 0);
@@ -151,60 +181,77 @@ export default function MapMarker({ document: docData, onHover }: MapMarkerProps
     }
   };
 
-  // เปิด/ปิด popup พร้อมป้องกัน event propagation
-  const togglePopup = async (e: any) => {
+  // เปิด popup รายละเอียดของเอกสารที่เลือก พร้อมนับ view และโหลดข้อมูลล่าสุด
+  const openDocument = async (doc: DocumentWithCategory) => {
+    setShowList(false);
+    setActiveDoc(doc);
+    await incrementViewCount(doc.id);
+    await fetchLatestCounts(doc.id);
+  };
+
+  // คลิกที่หมุด: ถ้ามีเอกสารเดียวเปิด popup เลย, ถ้าหลายเอกสารแสดงรายการให้เลือก
+  const handleMarkerClick = (e: any) => {
     // ป้องกัน event ไปที่ map click handler
     if (e && e.originalEvent) {
       e.originalEvent.stopPropagation();
     }
-    
-    if (!showPopup) {
-      // เมื่อเปิด popup ให้นับ view และโหลดข้อมูลล่าสุด
-      await handleViewDocument();
-      await fetchLatestCounts();
+
+    if (count > 1) {
+      setShowList(true);
+    } else {
+      openDocument(primary);
     }
-    setShowPopup(!showPopup);
   };
-  
+
   // ฟังก์ชันสำหรับ hover event
   const handleMouseOver = () => {
     if (onHover) {
-      onHover(docData.id);
+      onHover(primary.id);
     }
   };
-  
+
   const handleMouseOut = () => {
     if (onHover) {
       onHover(null);
     }
   };
-  
+
   // รอให้ icon ถูกสร้างเสร็จก่อนแสดงผล
   if (!icon) return null;
-  
+
   return (
     <>
       <Marker
-        position={[docData.latitude, docData.longitude]}
+        position={[primary.latitude, primary.longitude]}
         icon={icon}
         bubblingMouseEvents={false}
         eventHandlers={{
-          click: togglePopup,
+          click: handleMarkerClick,
           mouseover: handleMouseOver,
           mouseout: handleMouseOut
         }}
       />
 
-      {/* ใช้ DocumentPopup component ที่มีอยู่แล้ว */}
-      {showPopup && typeof document !== 'undefined' && createPortal(
+      {/* รายการเอกสารที่ซ้อนกันในจุดเดียว */}
+      {showList && typeof document !== 'undefined' && createPortal(
+        <LocationStackList
+          documents={documents}
+          onSelect={openDocument}
+          onClose={() => setShowList(false)}
+        />,
+        document.body
+      )}
+
+      {/* popup รายละเอียดของเอกสารที่เลือก */}
+      {activeDoc && typeof document !== 'undefined' && createPortal(
         <DocumentPopup
           document={{
-            ...docData,
+            ...activeDoc,
             viewCount,
             downloadCount
           }}
-          onClose={() => setShowPopup(false)}
-          onView={handleViewDocument}
+          onClose={() => setActiveDoc(null)}
+          onView={() => incrementViewCount(activeDoc.id)}
           onDownload={handleDownload}
         />,
         document.body

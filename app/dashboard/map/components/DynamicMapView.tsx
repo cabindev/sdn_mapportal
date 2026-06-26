@@ -11,6 +11,7 @@ import DocumentForm from "./DocumentForm";
 import DocumentPopup from "./DocumentPopup";
 import MapMarker from "./MapMarker";
 import { THAILAND_BOUNDS } from "@/app/utils/colorGenerator";
+import { groupDocumentsByLocation } from "@/app/utils/groupDocumentsByLocation";
 import "leaflet/dist/leaflet.css";
 import CircleLoader from "./CircleLoader";
 import TambonSearch from "./TambonSearch";
@@ -318,6 +319,12 @@ export default function DynamicMapView({
     mapState.highlightedDocId
   );
 
+  // จัดกลุ่มเอกสารตามพิกัด เพื่อรวมหมุดที่อยู่ในจุดเดียวกัน
+  const documentGroups = useMemo(
+    () => groupDocumentsByLocation(processedDocuments),
+    [processedDocuments]
+  );
+
   // Initialize map
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -495,10 +502,10 @@ export default function DynamicMapView({
             onClose={handleCloseProvinceHighlight}
           />
 
-          {processedDocuments.map((doc) => (
-            <MapMarker 
-              key={doc.id} 
-              document={doc} 
+          {documentGroups.map((group) => (
+            <MapMarker
+              key={group.key}
+              documents={group.documents}
               onHover={handleHoverDocument}
             />
           ))}

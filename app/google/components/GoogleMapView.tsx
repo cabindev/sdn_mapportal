@@ -1,10 +1,12 @@
 // app/google/components/GoogleMapView.tsx
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import { DocumentWithCategory, LocationData } from '@/app/types/document';
 import { getCategoryColor } from '@/app/utils/colorGenerator';
+import { groupDocumentsByLocation } from '@/app/utils/groupDocumentsByLocation';
+import LocationStackList from '@/app/components/LocationStackList';
 import GoogleLeftNavbar from './GoogleLeftNavbar';
 import GoogleRightSidebar from './GoogleRightSidebar';
 import GoogleDocumentPopup from './GoogleDocumentPopup';
@@ -23,6 +25,19 @@ const getContainerStyle = (fullscreen: boolean) => ({
 const center = {
   lat: 13.0,
   lng: 100.5
+};
+
+// สร้างไอคอนหมุดแบบมี badge นับจำนวน เมื่อมีหลายเอกสารในจุดเดียวกัน
+const buildStackedPinUrl = (color: string, count: number): string => {
+  const fill = encodeURIComponent(color);
+  const label = count > 99 ? '99+' : String(count);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="40" viewBox="0 0 34 40">` +
+    `<path fill="${fill}" stroke="white" stroke-width="1.5" d="M14 3C9.58 3 6 6.58 6 11c0 6 8 15 8 15s8-9 8-15c0-4.42-3.58-8-8-8z"/>` +
+    `<circle cx="14" cy="11" r="3" fill="white"/>` +
+    `<circle cx="25.5" cy="8.5" r="7.5" fill="%23EF4444" stroke="white" stroke-width="1.5"/>` +
+    `<text x="25.5" y="12" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="white">${label}</text>` +
+    `</svg>`;
+  return `data:image/svg+xml;utf8,${svg}`;
 };
 
 const mapOptions = {
@@ -68,6 +83,8 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
   const [hoveredDocId, setHoveredDocId] = useState<number | null>(null);
   const [viewCounts, setViewCounts] = useState<Record<number, number>>({});
   const [searchLocation, setSearchLocation] = useState<LocationData | null>(null);
+  // รายการเอกสารที่ซ้อนกันในจุดเดียว (แสดงเมื่อคลิกหมุดที่มีหลายเอกสาร)
+  const [stackDocs, setStackDocs] = useState<DocumentWithCategory[] | null>(null);
 
   // State สำหรับ province/region highlight
   const [highlightedProvince, setHighlightedProvince] = useState<string | null>(null);
@@ -218,6 +235,14 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
     }
   }, [currentLocation, mapInstance]);
 
+  // จัดกลุ่มเอกสารตามพิกัด (กรองตามหมวดหมู่ที่เลือกก่อน) เพื่อรวมหมุดที่ทับกัน
+  const documentGroups = useMemo(() => {
+    const filtered = documents.filter(doc =>
+      selectedCategories.length === 0 || selectedCategories.includes(doc.categoryId)
+    );
+    return groupDocumentsByLocation(filtered);
+  }, [documents, selectedCategories]);
+
   // Debug information
   console.log('🔑 API Key found:', !!apiKey);
   console.log('🔑 API Key length:', apiKey.length);
@@ -316,26 +341,35 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
           onLoad={handleMapLoad}
           options={mapOptions}
         >
-          {/* Document Markers */}
-          {isLoaded && documents.filter(doc =>
-            selectedCategories.length === 0 || selectedCategories.includes(doc.categoryId)
-          ).map(doc => {
-            const colorScheme = getCategoryColor(doc.categoryId);
+          {/* Document Markers - รวมหมุดที่อยู่ในพิกัดเดียวกันเป็นหมุดเดียว */}
+          {isLoaded && documentGroups.map(group => {
+            const primary = group.documents[0];
+            const count = group.documents.length;
+            const colorScheme = getCategoryColor(primary.categoryId);
             return (
               <Marker
-                key={doc.id}
-                position={{ lat: doc.latitude, lng: doc.longitude }}
+                key={group.key}
+                position={{ lat: group.latitude, lng: group.longitude }}
                 onClick={() => {
-                  setSelectedDoc(doc);
-                  setExpandedInfo(false);
-                  handleViewDocument(doc.id);
+                  if (count > 1) {
+                    // มีหลายเอกสารในจุดนี้ → แสดงรายการให้เลือก
+                    setStackDocs(group.documents);
+                  } else {
+                    setSelectedDoc(primary);
+                    setExpandedInfo(false);
+                    handleViewDocument(primary.id);
+                  }
                 }}
-                icon={{
+                icon={count > 1 ? {
+                  url: buildStackedPinUrl(colorScheme.primary, count),
+                  scaledSize: new google.maps.Size(34, 40),
+                  anchor: new google.maps.Point(14, 26)
+                } : {
                   url: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 24 36"><path fill="${encodeURIComponent(colorScheme.primary)}" stroke="white" stroke-width="1" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
                   scaledSize: new google.maps.Size(24, 29),
                   anchor: new google.maps.Point(12, 29)
                 }}
-                title={doc.title}
+                title={count > 1 ? `${count} เอกสารในจุดนี้` : primary.title}
               />
             );
           })}
@@ -503,6 +537,20 @@ export default function GoogleMapView({ documents, onMapLoad, fullscreen = false
             </button>
           </div>
         </div>
+      )}
+
+      {/* รายการเอกสารที่ซ้อนกันในจุดเดียว */}
+      {stackDocs && (
+        <LocationStackList
+          documents={stackDocs}
+          onClose={() => setStackDocs(null)}
+          onSelect={(doc) => {
+            setStackDocs(null);
+            setSelectedDoc(doc);
+            setExpandedInfo(false);
+            handleViewDocument(doc.id);
+          }}
+        />
       )}
     </div>
   );

@@ -65,7 +65,7 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions);
 
   return (
-    <html lang="th" className="scroll-smooth">
+    <html lang="th" className="scroll-smooth" suppressHydrationWarning>
       <body className={`${prompt.variable} font-sans antialiased`}>
         <SessionProvider session={session}>
           <main className="min-h-[calc(100vh-4rem)]">
