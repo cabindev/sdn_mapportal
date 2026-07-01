@@ -110,3 +110,24 @@
 .animate-slide-up {
   animation: slide-up 0.4s ease-out;
 }
+
+/* Progress bar for auto-rotating featured card */
+@keyframes progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.animate-progress {
+  animation: progress 4.5s linear forwards;
+}
+
+/* เคารพการตั้งค่าลดการเคลื่อนไหวของผู้ใช้ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-progress {
+    animation: none;
+  }
+}
