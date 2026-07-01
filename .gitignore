@@ -34,3 +34,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# user-uploaded content (runtime uploads, not source)
+/public/documents/
+/public/covers/
+/public/img/
